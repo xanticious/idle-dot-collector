@@ -1,0 +1,69 @@
+[
+  {
+    "sheet": "medieval-knight-sprite-sheet.png",
+    "animations": [
+      {
+        "name": "idle",
+        "frames": [
+          {
+            "x": 170,
+            "y": 20,
+            "width": 120,
+            "height": 190
+          }
+        ]
+      },
+      {
+        "name": "walk_s",
+        "frames": [
+          {
+            "x": 170,
+            "y": 630,
+            "width": 140,
+            "height": 200
+          }
+        ]
+      },
+      {
+        "name": "walk_n",
+        "frames": [
+          {
+            "x": 157,
+            "y": 216,
+            "width": 156,
+            "height": 200
+          }
+        ]
+      },
+      {
+        "name": "walk_e",
+        "frames": [
+          {
+            "x": 157,
+            "y": 420,
+            "width": 156,
+            "height": 200
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "sheet": "glowing-orbs-in-vibrant-colors.png",
+    "animations": [
+      {
+        "name": "idle",
+        "frames": []
+      }
+    ]
+  },
+  {
+    "sheet": "fantasy-creatures-sprite-sheet.png",
+    "animations": [
+      {
+        "name": "idle",
+        "frames": []
+      }
+    ]
+  }
+]

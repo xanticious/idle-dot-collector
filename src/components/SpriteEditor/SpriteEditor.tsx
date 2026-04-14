@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect, useCallback } from "react";
-import styles from "./SpriteEditor.module.css";
+import { useState, useRef, useEffect, useCallback } from 'react';
+import styles from './SpriteEditor.module.css';
 
 interface Frame {
   x: number;
@@ -19,9 +19,9 @@ interface SpriteDefinition {
 }
 
 const SPRITE_SHEETS = [
-  { label: "Medieval Knight", file: "medieval-knight-sprite-sheet.png" },
-  { label: "Glowing Orbs", file: "glowing-orbs-in-vibran-colors.png" },
-  { label: "Fantasy Creatures", file: "fantasy-creatures-sprite-sheet.png" },
+  { label: 'Medieval Knight', file: 'medieval-knight-sprite-sheet.png' },
+  { label: 'Glowing Orbs', file: 'glowing-orbs-in-vibrant-colors.png' },
+  { label: 'Fantasy Creatures', file: 'fantasy-creatures-sprite-sheet.png' },
 ];
 
 const DEFAULT_FPS = 8;
@@ -34,7 +34,10 @@ export default function SpriteEditor() {
 
   // Definitions per sheet (indexed by sheetIndex)
   const [allDefs, setAllDefs] = useState<SpriteDefinition[]>(
-    SPRITE_SHEETS.map((s) => ({ sheet: s.file, animations: [{ name: "idle", frames: [] }] })),
+    SPRITE_SHEETS.map((s) => ({
+      sheet: s.file,
+      animations: [{ name: 'idle', frames: [] }],
+    })),
   );
 
   // Current animation index within the selected sheet
@@ -43,13 +46,13 @@ export default function SpriteEditor() {
   const [frameIndex, setFrameIndex] = useState(0);
 
   // Frame input fields
-  const [fx, setFx] = useState("0");
-  const [fy, setFy] = useState("0");
-  const [fw, setFw] = useState("64");
-  const [fh, setFh] = useState("64");
+  const [fx, setFx] = useState('0');
+  const [fy, setFy] = useState('0');
+  const [fw, setFw] = useState('64');
+  const [fh, setFh] = useState('64');
 
   // New animation name input
-  const [newAnimName, setNewAnimName] = useState("");
+  const [newAnimName, setNewAnimName] = useState('');
 
   // Playback
   const [isPlaying, setIsPlaying] = useState(false);
@@ -62,11 +65,13 @@ export default function SpriteEditor() {
   const imageRef = useRef<HTMLImageElement | null>(null);
 
   const currentDef = allDefs[sheetIndex];
-  const currentAnim = currentDef.animations[animIndex] ?? currentDef.animations[0];
+  const currentAnim =
+    currentDef.animations[animIndex] ?? currentDef.animations[0];
   const frames = currentAnim?.frames ?? [];
   const totalFrames = frames.length;
 
-  const safeFrameIndex = totalFrames > 0 ? Math.min(frameIndex, totalFrames - 1) : 0;
+  const safeFrameIndex =
+    totalFrames > 0 ? Math.min(frameIndex, totalFrames - 1) : 0;
 
   // Parse frame inputs to numbers (clamped to valid range)
   const parsedFrame = useCallback((): Frame => {
@@ -101,7 +106,7 @@ export default function SpriteEditor() {
     const img = imageRef.current;
     if (!canvas || !img || !imageLoaded) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     canvas.width = img.naturalWidth;
@@ -111,14 +116,14 @@ export default function SpriteEditor() {
 
     // Draw frame highlight
     const frame = totalFrames > 0 ? frames[safeFrameIndex] : parsedFrame();
-    ctx.strokeStyle = "rgba(255, 200, 0, 0.9)";
+    ctx.strokeStyle = 'rgba(255, 200, 0, 0.9)';
     ctx.lineWidth = 2;
     ctx.setLineDash([4, 3]);
     ctx.strokeRect(frame.x, frame.y, frame.width, frame.height);
     ctx.setLineDash([]);
 
     // Semi-transparent fill
-    ctx.fillStyle = "rgba(255, 200, 0, 0.15)";
+    ctx.fillStyle = 'rgba(255, 200, 0, 0.15)';
     ctx.fillRect(frame.x, frame.y, frame.width, frame.height);
   }, [imageLoaded, frames, safeFrameIndex, totalFrames, parsedFrame]);
 
@@ -128,7 +133,7 @@ export default function SpriteEditor() {
     const img = imageRef.current;
     if (!canvas || !img || !imageLoaded) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
     const frame = totalFrames > 0 ? frames[safeFrameIndex] : parsedFrame();
@@ -144,12 +149,22 @@ export default function SpriteEditor() {
     const tileSize = 8;
     for (let row = 0; row < Math.ceil(dh / tileSize); row++) {
       for (let col = 0; col < Math.ceil(dw / tileSize); col++) {
-        ctx.fillStyle = (row + col) % 2 === 0 ? "#555" : "#333";
+        ctx.fillStyle = (row + col) % 2 === 0 ? '#555' : '#333';
         ctx.fillRect(col * tileSize, row * tileSize, tileSize, tileSize);
       }
     }
     ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, frame.x, frame.y, frame.width, frame.height, 0, 0, dw, dh);
+    ctx.drawImage(
+      img,
+      frame.x,
+      frame.y,
+      frame.width,
+      frame.height,
+      0,
+      0,
+      dw,
+      dh,
+    );
   }, [imageLoaded, frames, safeFrameIndex, totalFrames, parsedFrame]);
 
   useEffect(() => {
@@ -248,7 +263,7 @@ export default function SpriteEditor() {
       ),
     );
     setAnimIndex(currentDef.animations.length);
-    setNewAnimName("");
+    setNewAnimName('');
   };
 
   const handleRenameAnim = (name: string) => {
@@ -264,11 +279,11 @@ export default function SpriteEditor() {
       })),
     }));
     const json = JSON.stringify(output, null, 2);
-    const blob = new Blob([json], { type: "application/json" });
+    const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
+    const a = document.createElement('a');
     a.href = url;
-    a.download = "sprite-definitions.json";
+    a.download = 'sprite-definitions.json';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -296,7 +311,7 @@ export default function SpriteEditor() {
           {SPRITE_SHEETS.map((s, i) => (
             <button
               key={s.file}
-              className={`${styles.tab} ${i === sheetIndex ? styles.tabActive : ""}`}
+              className={`${styles.tab} ${i === sheetIndex ? styles.tabActive : ''}`}
               onClick={() => setSheetIndex(i)}
             >
               {s.label}
@@ -324,7 +339,7 @@ export default function SpriteEditor() {
               <div className={styles.placeholder}>
                 <i className="fa-solid fa-image" />
                 <p>
-                  Place <code>{SPRITE_SHEETS[sheetIndex].file}</code> in the{" "}
+                  Place <code>{SPRITE_SHEETS[sheetIndex].file}</code> in the{' '}
                   <code>public/</code> directory
                 </p>
               </div>
@@ -354,7 +369,7 @@ export default function SpriteEditor() {
           <div className={styles.frameCounter}>
             {totalFrames > 0
               ? `Frame ${safeFrameIndex + 1} of ${totalFrames}`
-              : "No frames defined — add frames below"}
+              : 'No frames defined — add frames below'}
           </div>
 
           <div className={styles.playbackRow}>
@@ -370,9 +385,9 @@ export default function SpriteEditor() {
               className={`${styles.iconBtn} ${styles.playBtn}`}
               onClick={() => setIsPlaying((v) => !v)}
               disabled={totalFrames < 2}
-              title={isPlaying ? "Pause" : "Play"}
+              title={isPlaying ? 'Pause' : 'Play'}
             >
-              <i className={`fa-solid ${isPlaying ? "fa-pause" : "fa-play"}`} />
+              <i className={`fa-solid ${isPlaying ? 'fa-pause' : 'fa-play'}`} />
             </button>
             <button
               className={styles.iconBtn}
@@ -473,11 +488,13 @@ export default function SpriteEditor() {
             {currentDef.animations.map((anim, ai) => (
               <button
                 key={ai}
-                className={`${styles.animItem} ${ai === animIndex ? styles.animItemActive : ""}`}
+                className={`${styles.animItem} ${ai === animIndex ? styles.animItemActive : ''}`}
                 onClick={() => setAnimIndex(ai)}
               >
                 <span className={styles.animName}>{anim.name}</span>
-                <span className={styles.animFrameCount}>{anim.frames.length}f</span>
+                <span className={styles.animFrameCount}>
+                  {anim.frames.length}f
+                </span>
               </button>
             ))}
           </div>
@@ -490,10 +507,14 @@ export default function SpriteEditor() {
               value={newAnimName}
               onChange={(e) => setNewAnimName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddAnimation();
+                if (e.key === 'Enter') handleAddAnimation();
               }}
             />
-            <button className={styles.actionBtn} onClick={handleAddAnimation} title="Add animation">
+            <button
+              className={styles.actionBtn}
+              onClick={handleAddAnimation}
+              title="Add animation"
+            >
               <i className="fa-solid fa-plus" />
             </button>
           </div>
@@ -503,20 +524,24 @@ export default function SpriteEditor() {
             <input
               type="text"
               className={styles.animNameInput}
-              value={currentAnim?.name ?? ""}
+              value={currentAnim?.name ?? ''}
               onChange={(e) => handleRenameAnim(e.target.value)}
             />
           </label>
 
-          <h3 className={styles.sectionTitle}>Frames in "{currentAnim?.name}"</h3>
+          <h3 className={styles.sectionTitle}>
+            Frames in "{currentAnim?.name}"
+          </h3>
           <div className={styles.frameList}>
             {frames.length === 0 && (
-              <p className={styles.emptyNote}>No frames yet — add one using the form.</p>
+              <p className={styles.emptyNote}>
+                No frames yet — add one using the form.
+              </p>
             )}
             {frames.map((f, fi) => (
               <button
                 key={fi}
-                className={`${styles.frameItem} ${fi === safeFrameIndex ? styles.frameItemActive : ""}`}
+                className={`${styles.frameItem} ${fi === safeFrameIndex ? styles.frameItemActive : ''}`}
                 onClick={() => setFrameIndex(fi)}
               >
                 <span className={styles.frameNum}>#{fi + 1}</span>
