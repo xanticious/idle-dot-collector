@@ -102,8 +102,7 @@
 
 .upgradeItem {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: 0.5rem;
   background: #0a0a1a;
   border: 1px solid #2a2a4a;
@@ -120,6 +119,46 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+}
+
+.upgradeRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.levelSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+}
+
+.levelButton {
+  padding: 0.2rem 0.45rem;
+  border-radius: 4px;
+  border: 1px solid #3a3a5a;
+  background: #14142a;
+  color: #8888aa;
+  font-size: 0.7rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    background 0.15s,
+    color 0.15s,
+    border-color 0.15s;
+}
+
+.levelButton:hover {
+  background: #1e1e3a;
+  color: #c0c0e0;
+  border-color: #6060aa;
+}
+
+.levelButton.levelButtonActive {
+  background: linear-gradient(135deg, #2d1e6e, #3d2a8a);
+  color: #d0b0ff;
+  border-color: #7060cc;
 }
 
 .upgradeIcon {
