@@ -19,23 +19,8 @@ export default function App() {
       )}
       {screen === "game" && <GameScreen />}
       {screen === "spriteEditor" && (
-        <div style={{ display: "flex", flexDirection: "column", width: "100%", height: "100%" }}>
-          <button
-            onClick={() => setScreen("landing")}
-            style={{
-              position: "absolute",
-              top: "0.5rem",
-              right: "0.75rem",
-              zIndex: 10,
-              padding: "0.25rem 0.7rem",
-              fontSize: "0.78rem",
-              border: "1px solid #3a3a6a",
-              borderRadius: "6px",
-              background: "#1a1a3e",
-              color: "#aaaacc",
-              cursor: "pointer",
-            }}
-          >
+        <div className={styles.spriteEditorWrapper}>
+          <button className={styles.closeEditorBtn} onClick={() => setScreen("landing")}>
             ✕ Close Editor
           </button>
           <SpriteEditor />

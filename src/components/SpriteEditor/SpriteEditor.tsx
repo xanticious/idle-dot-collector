@@ -54,7 +54,7 @@ export default function SpriteEditor() {
   // Playback
   const [isPlaying, setIsPlaying] = useState(false);
   const [fps, setFps] = useState(DEFAULT_FPS);
-  const playRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const playRef = useRef<number | null>(null);
 
   // Canvas refs
   const sheetCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -269,7 +269,9 @@ export default function SpriteEditor() {
     const a = document.createElement("a");
     a.href = url;
     a.download = "sprite-definitions.json";
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
 
