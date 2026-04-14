@@ -1,0 +1,204 @@
+.panel {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translateY(-50%);
+  width: 280px;
+  background: #111122;
+  border: 1px solid #2a2a4a;
+  border-right: none;
+  border-radius: 12px 0 0 12px;
+  box-shadow: -4px 0 30px rgba(0, 0, 0, 0.5);
+  transition: transform 0.3s ease, opacity 0.3s ease;
+  z-index: 100;
+  display: flex;
+}
+
+.panel.collapsed {
+  transform: translateY(-50%) translateX(280px);
+}
+
+.toggleButton {
+  position: absolute;
+  left: -40px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 40px;
+  height: 60px;
+  background: #111122;
+  border: 1px solid #2a2a4a;
+  border-right: none;
+  border-radius: 8px 0 0 8px;
+  color: #8888aa;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.9rem;
+  transition: color 0.2s, background 0.2s;
+}
+
+.toggleButton:hover {
+  color: #FFD700;
+  background: #1a1a33;
+}
+
+.content {
+  flex: 1;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  overflow-y: auto;
+  max-height: 80vh;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  color: #FFD700;
+  font-size: 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border-bottom: 1px solid #2a2a4a;
+  padding-bottom: 0.75rem;
+}
+
+.moneyDisplay {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #0d0d1a;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+}
+
+.moneyAmount {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: #FFD700;
+  flex: 1;
+}
+
+.moneyLabel {
+  font-size: 0.75rem;
+  color: #4a4a6a;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.upgrades {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.upgradeItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  background: #0a0a1a;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  transition: border-color 0.2s;
+}
+
+.upgradeItem:hover {
+  border-color: #4a4a8a;
+}
+
+.upgradeInfo {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.upgradeIcon {
+  color: #6C5CE7;
+  font-size: 1rem;
+  width: 1.2em;
+  text-align: center;
+}
+
+.upgradeName {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #c0c0e0;
+}
+
+.upgradeDesc {
+  font-size: 0.75rem;
+  color: #6666aa;
+}
+
+.upgradeButton {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.75rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.2s, transform 0.1s;
+}
+
+.upgradeButton.canAfford {
+  background: linear-gradient(135deg, #2d4a1e, #3a6025);
+  color: #90ee90;
+  border: 1px solid #4a8030;
+}
+
+.upgradeButton.canAfford:hover {
+  transform: scale(1.05);
+  background: linear-gradient(135deg, #3a6025, #4a7a30);
+}
+
+.upgradeButton.cantAfford {
+  background: #1a1a2a;
+  color: #4a4a6a;
+  border: 1px solid #2a2a3a;
+  cursor: not-allowed;
+}
+
+.legend {
+  border-top: 1px solid #2a2a4a;
+  padding-top: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  color: #6666aa;
+}
+
+.normalDot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #FFFF00;
+  flex-shrink: 0;
+}
+
+.specialDot {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #FFAA00;
+  box-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
+  flex-shrink: 0;
+}
