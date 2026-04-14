@@ -145,7 +145,7 @@ export class GameEngine {
     this.heroContainer.addChild(sprite);
 
     this.heroes.push({
-      data: { id, x, y, color: 0xffffff },
+      data: { id, x, y, color: 0xffffff }, // color unused; sprite replaces geometric shape
       sprite,
       targetDotId: null,
       speed: this.config.heroSpeed,

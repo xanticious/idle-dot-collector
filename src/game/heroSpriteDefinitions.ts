@@ -17,7 +17,7 @@ export const HERO_SPRITE_FRAMES: Record<
   Exclude<AnimationKey, 'walk_w'>,
   SpriteFrame
 > = {
-  idle:   { x: 170, y: 20,  width: 120, height: 190 },
+  idle: { x: 170, y: 20, width: 120, height: 190 },
   walk_n: { x: 157, y: 216, width: 156, height: 200 },
   walk_e: { x: 157, y: 420, width: 156, height: 200 },
   walk_s: { x: 170, y: 630, width: 140, height: 200 },
