@@ -1,17 +1,18 @@
-import { Application, Graphics, Container } from 'pixi.js';
+import { Application, Assets, Graphics, Sprite, Texture, Rectangle, Container } from 'pixi.js';
 import type { GameConfig, DotData, HeroData } from './types';
+import {
+  HERO_SPRITE_SHEET,
+  HERO_SPRITE_FRAMES,
+  HERO_DISPLAY_HEIGHT,
+  type AnimationKey,
+} from './heroSpriteDefinitions';
 
-const HERO_COLORS = [
-  0xff6b6b, 0x4ecdc4, 0x45b7d1, 0xf9ca24, 0x6c5ce7, 0xfd79a8, 0x00b894,
-  0xe17055,
-];
 const DOT_COLOR = 0xffff00;
 const SPECIAL_DOT_COLOR = 0xffaa00;
 const DOT_SPAWN_INTERVAL = 60;
 const MAX_DOTS = 50;
 const DOT_RADIUS = 6;
 const SPECIAL_DOT_RADIUS = 10;
-const HERO_SIZE = 18;
 
 interface InternalDot {
   data: DotData;
@@ -21,12 +22,14 @@ interface InternalDot {
 
 interface InternalHero {
   data: HeroData;
-  graphics: Graphics;
+  sprite: Sprite;
   targetDotId: number | null;
   speed: number;
+  direction: AnimationKey;
 }
 
 export class GameEngine {
+  private heroTextures: Map<AnimationKey, Texture> = new Map();
   private app: Application | null = null;
   private container: HTMLElement;
   private onCollect: (amount: number) => void;
@@ -64,6 +67,21 @@ export class GameEngine {
       app.destroy(true, { children: true });
       return;
     }
+
+    // Load sprite sheet and build per-animation textures
+    const sheetTexture: Texture = await Assets.load(HERO_SPRITE_SHEET);
+    for (const [key, frame] of Object.entries(HERO_SPRITE_FRAMES) as [
+      Exclude<AnimationKey, 'walk_w'>,
+      (typeof HERO_SPRITE_FRAMES)[keyof typeof HERO_SPRITE_FRAMES],
+    ][]) {
+      const texture = new Texture({
+        source: sheetTexture.source,
+        frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+      });
+      this.heroTextures.set(key, texture);
+    }
+    // walk_w reuses the walk_e texture; the sprite is flipped via scale.x
+    this.heroTextures.set('walk_w', this.heroTextures.get('walk_e')!);
 
     this.app = app;
     this.container.appendChild(this.app.canvas);
@@ -104,8 +122,8 @@ export class GameEngine {
 
     while (this.heroes.length > this.config.heroCount) {
       const hero = this.heroes.pop()!;
-      this.heroContainer.removeChild(hero.graphics);
-      hero.graphics.destroy();
+      this.heroContainer.removeChild(hero.sprite);
+      hero.sprite.destroy();
     }
   }
 
@@ -113,37 +131,26 @@ export class GameEngine {
     if (!this.heroContainer || !this.app) return;
 
     const id = this.heroes.length;
-    const color = HERO_COLORS[id % HERO_COLORS.length];
     const x = 100 + Math.random() * (this.app.screen.width - 200);
     const y = 100 + Math.random() * (this.app.screen.height - 200);
 
-    const g = new Graphics();
-    this.drawHero(g, color);
-    g.x = x;
-    g.y = y;
-    this.heroContainer.addChild(g);
+    const idleTexture = this.heroTextures.get('idle')!;
+    const scale = HERO_DISPLAY_HEIGHT / idleTexture.height;
+
+    const sprite = new Sprite(idleTexture);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.scale.set(scale);
+    sprite.x = x;
+    sprite.y = y;
+    this.heroContainer.addChild(sprite);
 
     this.heroes.push({
-      data: { id, x, y, color },
-      graphics: g,
+      data: { id, x, y, color: 0xffffff }, // color unused; sprite replaces geometric shape
+      sprite,
       targetDotId: null,
       speed: this.config.heroSpeed,
+      direction: 'idle',
     });
-  }
-
-  private drawHero(g: Graphics, color: number): void {
-    g.clear();
-    const s = HERO_SIZE;
-    g.moveTo(0, -s);
-    g.lineTo(s * 0.866, -s * 0.5);
-    g.lineTo(s * 0.866, s * 0.5);
-    g.lineTo(0, s);
-    g.lineTo(-s * 0.866, s * 0.5);
-    g.lineTo(-s * 0.866, -s * 0.5);
-    g.closePath();
-    g.fill(color);
-    g.circle(0, 0, 4);
-    g.fill(0xffffff);
   }
 
   private spawnDot(): void {
@@ -205,11 +212,12 @@ export class GameEngine {
       const dot = this.dots.find((d) => d.data.id === hero.targetDotId);
       if (!dot) {
         hero.targetDotId = null;
+        this.setHeroDirection(hero, 'idle');
         return;
       }
 
-      const dx = dot.data.x - hero.graphics.x;
-      const dy = dot.data.y - hero.graphics.y;
+      const dx = dot.data.x - hero.sprite.x;
+      const dy = dot.data.y - hero.sprite.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = hero.speed * 2;
 
@@ -219,9 +227,34 @@ export class GameEngine {
       ) {
         this.collectDot(dot, hero);
       } else {
-        hero.graphics.x += (dx / dist) * speed;
-        hero.graphics.y += (dy / dist) * speed;
+        // Determine walking direction from dominant axis
+        let newDirection: AnimationKey;
+        if (Math.abs(dx) >= Math.abs(dy)) {
+          newDirection = dx > 0 ? 'walk_e' : 'walk_w';
+        } else {
+          newDirection = dy > 0 ? 'walk_s' : 'walk_n';
+        }
+        this.setHeroDirection(hero, newDirection);
+
+        hero.sprite.x += (dx / dist) * speed;
+        hero.sprite.y += (dy / dist) * speed;
       }
+    } else {
+      this.setHeroDirection(hero, 'idle');
+    }
+  }
+
+  private setHeroDirection(hero: InternalHero, direction: AnimationKey): void {
+    if (hero.direction === direction) return;
+    hero.direction = direction;
+
+    const texture = this.heroTextures.get(direction)!;
+    const scale = HERO_DISPLAY_HEIGHT / texture.height;
+    hero.sprite.texture = texture;
+    if (direction === 'walk_w') {
+      hero.sprite.scale.set(-scale, scale);
+    } else {
+      hero.sprite.scale.set(scale, scale);
     }
   }
 
@@ -231,8 +264,8 @@ export class GameEngine {
 
     for (const dot of this.dots) {
       if (dot.claimed) continue;
-      const dx = dot.data.x - hero.graphics.x;
-      const dy = dot.data.y - hero.graphics.y;
+      const dx = dot.data.x - hero.sprite.x;
+      const dy = dot.data.y - hero.sprite.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < nearestDist) {
         nearestDist = dist;
