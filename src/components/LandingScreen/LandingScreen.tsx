@@ -2,6 +2,7 @@ import styles from "./LandingScreen.module.css";
 
 interface LandingScreenProps {
   onBegin: () => void;
+  onOpenSpriteEditor: () => void;
 }
 
 const DECORATIVE_DOTS = Array.from({ length: 20 }, (_, i) => ({
@@ -12,7 +13,7 @@ const DECORATIVE_DOTS = Array.from({ length: 20 }, (_, i) => ({
   size: `${8 + (i % 4) * 4}px`,
 }));
 
-export default function LandingScreen({ onBegin }: LandingScreenProps) {
+export default function LandingScreen({ onBegin, onOpenSpriteEditor }: LandingScreenProps) {
   return (
     <div className={styles.container}>
       <div className={styles.content}>
@@ -24,6 +25,10 @@ export default function LandingScreen({ onBegin }: LandingScreenProps) {
         <button className={styles.beginButton} onClick={onBegin}>
           <i className="fa-solid fa-play" />
           Begin
+        </button>
+        <button className={styles.editorButton} onClick={onOpenSpriteEditor}>
+          <i className="fa-solid fa-film" />
+          Sprite Editor
         </button>
       </div>
       <div className={styles.dots} aria-hidden="true">

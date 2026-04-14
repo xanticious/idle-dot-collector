@@ -19,10 +19,19 @@ export default function GameScreen() {
         heroCount={store.heroCount}
         heroSpeed={store.heroSpeed}
         specialDotChance={store.specialDotChance}
+        heroCountLevel={store.heroCountLevel}
+        speedLevel={store.speedLevel}
+        specialLevel={store.specialLevel}
+        activeHeroCountLevel={store.activeHeroCountLevel}
+        activeSpeedLevel={store.activeSpeedLevel}
+        activeSpecialLevel={store.activeSpecialLevel}
+        upgradeCosts={store.upgradeCosts}
         onUpgradeHeroSpeed={store.upgradeHeroSpeed}
         onUpgradeHeroCount={store.upgradeHeroCount}
         onUpgradeSpecialDotChance={store.upgradeSpecialDotChance}
-        upgradeCosts={store.upgradeCosts}
+        onSetActiveHeroCountLevel={store.setActiveHeroCountLevel}
+        onSetActiveSpeedLevel={store.setActiveSpeedLevel}
+        onSetActiveSpecialLevel={store.setActiveSpecialLevel}
       />
     </div>
   );

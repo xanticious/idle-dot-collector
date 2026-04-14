@@ -1,0 +1,505 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  background: #0d0d1a;
+  color: #e0e0f0;
+  overflow: hidden;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1rem;
+  background: #12122a;
+  border-bottom: 1px solid #2a2a4a;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffd700;
+  white-space: nowrap;
+  margin-right: auto;
+}
+
+.sheetTabs {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tab {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #3a3a6a;
+  border-radius: 6px;
+  background: #1a1a3e;
+  color: #aaaacc;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+.tab:hover {
+  background: #2a2a5a;
+  color: #e0e0f0;
+}
+
+.tabActive {
+  background: #2a2a6a;
+  border-color: #ffd700;
+  color: #ffd700;
+}
+
+.exportBtn {
+  padding: 0.35rem 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  border: none;
+  border-radius: 6px;
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
+  color: #0d0d1a;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: opacity 0.15s;
+}
+
+.exportBtn:hover {
+  opacity: 0.85;
+}
+
+/* ── Body layout ── */
+.body {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+  gap: 0;
+}
+
+/* ── Panel shared ── */
+.panelTitle {
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #aaaacc;
+  margin-bottom: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.sectionTitle {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #8888aa;
+  margin: 0.75rem 0 0.4rem;
+}
+
+/* ── Sheet panel (left) ── */
+.sheetPanel {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  min-width: 200px;
+  padding: 0.75rem;
+  border-right: 1px solid #2a2a4a;
+  overflow: hidden;
+}
+
+.sheetMeta {
+  font-size: 0.72rem;
+  color: #666688;
+  margin-left: auto;
+  font-weight: 400;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.sheetScroll {
+  flex: 1;
+  overflow: auto;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  background: #111128;
+  min-height: 0;
+}
+
+.sheetCanvas {
+  display: block;
+  image-rendering: pixelated;
+  cursor: crosshair;
+}
+
+.placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  padding: 2rem;
+  color: #555577;
+  text-align: center;
+  font-size: 0.85rem;
+  height: 100%;
+  min-height: 160px;
+}
+
+.placeholder i {
+  font-size: 2.5rem;
+}
+
+.placeholder code {
+  font-family: monospace;
+  color: #8888cc;
+  background: #1a1a3a;
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+}
+
+/* ── Preview panel (center) ── */
+.previewPanel {
+  display: flex;
+  flex-direction: column;
+  width: 280px;
+  min-width: 200px;
+  padding: 0.75rem;
+  border-right: 1px solid #2a2a4a;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.previewBox {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  background: #111128;
+  min-height: 100px;
+  padding: 0.5rem;
+  flex-shrink: 0;
+}
+
+.previewEmpty {
+  color: #555577;
+  font-size: 0.82rem;
+}
+
+.previewCanvas {
+  display: block;
+  image-rendering: pixelated;
+  max-width: 100%;
+}
+
+.frameCounter {
+  text-align: center;
+  font-size: 0.82rem;
+  color: #aaaacc;
+  margin: 0.5rem 0 0.25rem;
+  flex-shrink: 0;
+}
+
+.playbackRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-bottom: 0.25rem;
+}
+
+.iconBtn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #3a3a6a;
+  border-radius: 8px;
+  background: #1a1a3e;
+  color: #aaaacc;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.iconBtn:hover:not(:disabled) {
+  background: #2a2a5a;
+  color: #e0e0f0;
+}
+
+.iconBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.playBtn {
+  width: 44px;
+  height: 44px;
+  border-color: #ffd700;
+  color: #ffd700;
+  font-size: 1.1rem;
+}
+
+.playBtn:hover:not(:disabled) {
+  background: #2a2a1a;
+  color: #ffdd44;
+}
+
+.fpsLabel {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.78rem;
+  color: #8888aa;
+  margin-left: 0.5rem;
+}
+
+.fpsInput {
+  width: 46px;
+  padding: 0.25rem 0.35rem;
+  border: 1px solid #3a3a6a;
+  border-radius: 5px;
+  background: #1a1a3e;
+  color: #e0e0f0;
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+/* ── Coordinate inputs ── */
+.coordSection {
+  flex-shrink: 0;
+}
+
+.coordGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.coordLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  font-size: 0.75rem;
+  color: #8888aa;
+  font-weight: 600;
+}
+
+.coordInput {
+  width: 100%;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid #3a3a6a;
+  border-radius: 5px;
+  background: #1a1a3e;
+  color: #e0e0f0;
+  font-size: 0.85rem;
+  text-align: right;
+}
+
+.coordInput:focus {
+  outline: none;
+  border-color: #ffd700;
+}
+
+.frameActions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-top: 0.6rem;
+}
+
+.actionBtn {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border: 1px solid #3a3a6a;
+  border-radius: 6px;
+  background: #1a1a3e;
+  color: #ccccee;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background: #2a2a5a;
+  border-color: #6666aa;
+}
+
+.actionBtn:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.dangerBtn {
+  border-color: #6a1a1a;
+  color: #ffaaaa;
+}
+
+.dangerBtn:hover:not(:disabled) {
+  background: #2a0a0a;
+  border-color: #aa3333;
+}
+
+/* ── Animation panel (right) ── */
+.animPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 200px;
+  padding: 0.75rem;
+  overflow: hidden;
+}
+
+.animList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  max-height: 150px;
+  overflow-y: auto;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  padding: 0.3rem;
+  background: #111128;
+  flex-shrink: 0;
+}
+
+.animItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.3rem 0.6rem;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #aaaacc;
+  cursor: pointer;
+  font-size: 0.82rem;
+  text-align: left;
+  transition: background 0.12s;
+}
+
+.animItem:hover {
+  background: #1a1a3e;
+}
+
+.animItemActive {
+  border-color: #ffd700;
+  background: #1a1a2a;
+  color: #ffd700;
+}
+
+.animName {
+  font-weight: 600;
+}
+
+.animFrameCount {
+  font-size: 0.7rem;
+  color: #666688;
+}
+
+.addAnimRow {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.5rem;
+  flex-shrink: 0;
+}
+
+.animNameInput {
+  flex: 1;
+  padding: 0.3rem 0.5rem;
+  border: 1px solid #3a3a6a;
+  border-radius: 5px;
+  background: #1a1a3e;
+  color: #e0e0f0;
+  font-size: 0.82rem;
+}
+
+.animNameInput:focus {
+  outline: none;
+  border-color: #ffd700;
+}
+
+.renameLabel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: #8888aa;
+  font-weight: 600;
+  margin-top: 0.6rem;
+  flex-shrink: 0;
+}
+
+/* ── Frame list ── */
+.frameList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  flex: 1;
+  overflow-y: auto;
+  border: 1px solid #2a2a4a;
+  border-radius: 6px;
+  padding: 0.3rem;
+  background: #111128;
+  min-height: 0;
+}
+
+.emptyNote {
+  font-size: 0.78rem;
+  color: #555577;
+  padding: 0.5rem;
+  text-align: center;
+}
+
+.frameItem {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.28rem 0.55rem;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: #aaaacc;
+  cursor: pointer;
+  font-size: 0.78rem;
+  text-align: left;
+  transition: background 0.1s;
+  font-family: monospace;
+}
+
+.frameItem:hover {
+  background: #1a1a3e;
+}
+
+.frameItemActive {
+  border-color: #ffd700;
+  background: #1a1a2a;
+  color: #ffd700;
+}
+
+.frameNum {
+  font-weight: 700;
+  min-width: 28px;
+  color: #888899;
+}
+
+.frameItemActive .frameNum {
+  color: #bbaa44;
+}
+
+.frameCoords {
+  flex: 1;
+}
