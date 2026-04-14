@@ -1,7 +1,7 @@
-import GameCanvas from '../GameCanvas/GameCanvas';
-import UpgradePanel from '../UpgradePanel/UpgradePanel';
-import { useGameStore } from '../../store/useGameStore';
-import styles from './GameScreen.module.css';
+import GameCanvas from "../GameCanvas/GameCanvas";
+import UpgradePanel from "../UpgradePanel/UpgradePanel";
+import { useGameStore } from "../../store/useGameStore";
+import styles from "./GameScreen.module.css";
 
 export default function GameScreen() {
   const store = useGameStore();

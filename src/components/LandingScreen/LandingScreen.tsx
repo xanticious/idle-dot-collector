@@ -1,4 +1,4 @@
-import styles from './LandingScreen.module.css';
+import styles from "./LandingScreen.module.css";
 
 interface LandingScreenProps {
   onBegin: () => void;
@@ -20,9 +20,7 @@ export default function LandingScreen({ onBegin }: LandingScreenProps) {
           <i className="fa-solid fa-circle-dot" />
         </div>
         <h1 className={styles.title}>Idle Dot Collector</h1>
-        <p className={styles.subtitle}>
-          Deploy heroes. Collect dots. Upgrade your forces.
-        </p>
+        <p className={styles.subtitle}>Deploy heroes. Collect dots. Upgrade your forces.</p>
         <button className={styles.beginButton} onClick={onBegin}>
           <i className="fa-solid fa-play" />
           Begin

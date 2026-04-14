@@ -1,23 +1,23 @@
-import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import LandingScreen from '../components/LandingScreen/LandingScreen';
+import { describe, it, expect, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import LandingScreen from "../components/LandingScreen/LandingScreen";
 
-describe('LandingScreen', () => {
-  it('renders the title', () => {
+describe("LandingScreen", () => {
+  it("renders the title", () => {
     render(<LandingScreen onBegin={() => {}} />);
-    expect(screen.getByText('Idle Dot Collector')).toBeInTheDocument();
+    expect(screen.getByText("Idle Dot Collector")).toBeInTheDocument();
   });
 
-  it('renders the Begin button', () => {
+  it("renders the Begin button", () => {
     render(<LandingScreen onBegin={() => {}} />);
-    expect(screen.getByRole('button', { name: /begin/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /begin/i })).toBeInTheDocument();
   });
 
-  it('calls onBegin when Begin button is clicked', async () => {
+  it("calls onBegin when Begin button is clicked", async () => {
     const onBegin = vi.fn();
     render(<LandingScreen onBegin={onBegin} />);
-    await userEvent.click(screen.getByRole('button', { name: /begin/i }));
+    await userEvent.click(screen.getByRole("button", { name: /begin/i }));
     expect(onBegin).toHaveBeenCalledOnce();
   });
 });

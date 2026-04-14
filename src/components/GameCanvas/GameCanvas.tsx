@@ -1,7 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { GameEngine } from '../../game/GameEngine';
-import type { GameConfig } from '../../game/types';
-import styles from './GameCanvas.module.css';
+import { useEffect, useRef } from "react";
+import { GameEngine } from "../../game/GameEngine";
+import type { GameConfig } from "../../game/types";
+import styles from "./GameCanvas.module.css";
 
 interface GameCanvasProps {
   heroCount: number;

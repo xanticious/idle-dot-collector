@@ -43,10 +43,7 @@ export class GameEngine {
   private dotContainer: Container | null = null;
   private destroyed = false;
 
-  constructor(
-    container: HTMLElement,
-    onCollect: (amount: number) => void,
-  ) {
+  constructor(container: HTMLElement, onCollect: (amount: number) => void) {
     this.container = container;
     this.onCollect = onCollect;
   }
@@ -54,8 +51,8 @@ export class GameEngine {
   async init(config: GameConfig): Promise<void> {
     this.config = config;
 
-    this.app = new Application();
-    await this.app.init({
+    const app = new Application();
+    await app.init({
       resizeTo: this.container,
       backgroundColor: 0x0d0d1a,
       antialias: true,
@@ -63,6 +60,12 @@ export class GameEngine {
       resolution: window.devicePixelRatio || 1,
     });
 
+    if (this.destroyed) {
+      app.destroy(true, { children: true });
+      return;
+    }
+
+    this.app = app;
     this.container.appendChild(this.app.canvas);
 
     this.dotContainer = new Container();
@@ -210,7 +213,10 @@ export class GameEngine {
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = hero.speed * 2;
 
-      if (dist < speed + (dot.data.isSpecial ? SPECIAL_DOT_RADIUS : DOT_RADIUS)) {
+      if (
+        dist <
+        speed + (dot.data.isSpecial ? SPECIAL_DOT_RADIUS : DOT_RADIUS)
+      ) {
         this.collectDot(dot, hero);
       } else {
         hero.graphics.x += (dx / dist) * speed;

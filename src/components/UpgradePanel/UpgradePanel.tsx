@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import type { UpgradeCosts } from '../../game/types';
-import styles from './UpgradePanel.module.css';
+import { useState } from "react";
+import type { UpgradeCosts } from "../../game/types";
+import styles from "./UpgradePanel.module.css";
 
 interface UpgradePanelProps {
   money: number;
@@ -26,13 +26,13 @@ export default function UpgradePanel({
   const [collapsed, setCollapsed] = useState(false);
 
   return (
-    <div className={`${styles.panel} ${collapsed ? styles.collapsed : ''}`}>
+    <div className={`${styles.panel} ${collapsed ? styles.collapsed : ""}`}>
       <button
         className={styles.toggleButton}
         onClick={() => setCollapsed(!collapsed)}
-        aria-label={collapsed ? 'Expand upgrade panel' : 'Collapse upgrade panel'}
+        aria-label={collapsed ? "Expand upgrade panel" : "Collapse upgrade panel"}
       >
-        <i className={`fa-solid ${collapsed ? 'fa-chevron-left' : 'fa-chevron-right'}`} />
+        <i className={`fa-solid ${collapsed ? "fa-chevron-left" : "fa-chevron-right"}`} />
       </button>
 
       <div className={styles.content}>
@@ -42,7 +42,7 @@ export default function UpgradePanel({
         </div>
 
         <div className={styles.moneyDisplay}>
-          <i className="fa-solid fa-circle" style={{ color: '#FFD700' }} />
+          <i className="fa-solid fa-circle" style={{ color: "#FFD700" }} />
           <span className={styles.moneyAmount}>{Math.floor(money)}</span>
           <span className={styles.moneyLabel}>dots</span>
         </div>
@@ -113,7 +113,7 @@ function UpgradeItem({ icon, label, description, cost, canAfford, onUpgrade }: U
         onClick={onUpgrade}
         disabled={!canAfford}
       >
-        <i className="fa-solid fa-circle" style={{ color: '#FFD700', fontSize: '0.75em' }} />
+        <i className="fa-solid fa-circle" style={{ color: "#FFD700", fontSize: "0.75em" }} />
         {cost}
       </button>
     </div>

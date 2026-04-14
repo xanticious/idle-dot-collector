@@ -1,5 +1,5 @@
-import { useState, useCallback } from 'react';
-import type { UpgradeCosts } from '../game/types';
+import { useState, useCallback } from "react";
+import type { UpgradeCosts } from "../game/types";
 
 const BASE_COSTS: UpgradeCosts = {
   heroSpeed: 50,
@@ -25,22 +25,15 @@ export function useGameStore() {
     heroSpeed:
       heroSpeed >= MAX_HERO_SPEED
         ? Infinity
-        : Math.floor(
-            BASE_COSTS.heroSpeed * Math.pow(COST_MULTIPLIER, speedLevel),
-          ),
+        : Math.floor(BASE_COSTS.heroSpeed * Math.pow(COST_MULTIPLIER, speedLevel)),
     heroCount:
       heroCount >= MAX_HEROES
         ? Infinity
-        : Math.floor(
-            BASE_COSTS.heroCount * Math.pow(COST_MULTIPLIER, heroCountLevel),
-          ),
+        : Math.floor(BASE_COSTS.heroCount * Math.pow(COST_MULTIPLIER, heroCountLevel)),
     specialDotChance:
       specialDotChance >= MAX_SPECIAL_CHANCE
         ? Infinity
-        : Math.floor(
-            BASE_COSTS.specialDotChance *
-              Math.pow(COST_MULTIPLIER, specialLevel),
-          ),
+        : Math.floor(BASE_COSTS.specialDotChance * Math.pow(COST_MULTIPLIER, specialLevel)),
   };
 
   const addMoney = useCallback((amount: number) => {
@@ -48,9 +41,7 @@ export function useGameStore() {
   }, []);
 
   const upgradeHeroSpeed = useCallback(() => {
-    const cost = Math.floor(
-      BASE_COSTS.heroSpeed * Math.pow(COST_MULTIPLIER, speedLevel),
-    );
+    const cost = Math.floor(BASE_COSTS.heroSpeed * Math.pow(COST_MULTIPLIER, speedLevel));
     setMoney((prev) => {
       if (prev < cost) return prev;
       setHeroSpeed((s) => Math.min(s + 0.5, MAX_HERO_SPEED));
@@ -60,9 +51,7 @@ export function useGameStore() {
   }, [speedLevel]);
 
   const upgradeHeroCount = useCallback(() => {
-    const cost = Math.floor(
-      BASE_COSTS.heroCount * Math.pow(COST_MULTIPLIER, heroCountLevel),
-    );
+    const cost = Math.floor(BASE_COSTS.heroCount * Math.pow(COST_MULTIPLIER, heroCountLevel));
     setMoney((prev) => {
       if (prev < cost || heroCount >= MAX_HEROES) return prev;
       setHeroCount((c) => Math.min(c + 1, MAX_HEROES));
@@ -72,9 +61,7 @@ export function useGameStore() {
   }, [heroCountLevel, heroCount]);
 
   const upgradeSpecialDotChance = useCallback(() => {
-    const cost = Math.floor(
-      BASE_COSTS.specialDotChance * Math.pow(COST_MULTIPLIER, specialLevel),
-    );
+    const cost = Math.floor(BASE_COSTS.specialDotChance * Math.pow(COST_MULTIPLIER, specialLevel));
     setMoney((prev) => {
       if (prev < cost || specialDotChance >= MAX_SPECIAL_CHANCE) return prev;
       setSpecialDotChance((c) => Math.min(c + 0.05, MAX_SPECIAL_CHANCE));

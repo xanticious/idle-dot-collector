@@ -20,7 +20,7 @@
 
 .icon {
   font-size: 4rem;
-  color: #FFD700;
+  color: #ffd700;
   filter: drop-shadow(0 0 20px rgba(255, 215, 0, 0.8));
   animation: pulse 2s ease-in-out infinite;
 }
@@ -29,7 +29,7 @@
   font-size: clamp(2rem, 6vw, 4rem);
   font-weight: 900;
   letter-spacing: -0.02em;
-  background: linear-gradient(135deg, #FFD700 0%, #FF6B6B 50%, #4ECDC4 100%);
+  background: linear-gradient(135deg, #ffd700 0%, #ff6b6b 50%, #4ecdc4 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -51,10 +51,12 @@
   font-weight: 700;
   border: none;
   border-radius: 50px;
-  background: linear-gradient(135deg, #FFD700, #FF8C00);
+  background: linear-gradient(135deg, #ffd700, #ff8c00);
   color: #0d0d1a;
   cursor: pointer;
-  transition: transform 0.2s, box-shadow 0.2s;
+  transition:
+    transform 0.2s,
+    box-shadow 0.2s;
   box-shadow: 0 4px 20px rgba(255, 215, 0, 0.4);
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -83,11 +85,23 @@
 }
 
 @keyframes pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
 }
 
 @keyframes float {
-  0%, 100% { transform: translateY(0); opacity: 0.15; }
-  50% { transform: translateY(-20px); opacity: 0.4; }
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.15;
+  }
+  50% {
+    transform: translateY(-20px);
+    opacity: 0.4;
+  }
 }
