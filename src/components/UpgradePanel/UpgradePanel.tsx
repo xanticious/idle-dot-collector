@@ -7,10 +7,19 @@ interface UpgradePanelProps {
   heroCount: number;
   heroSpeed: number;
   specialDotChance: number;
+  heroCountLevel: number;
+  speedLevel: number;
+  specialLevel: number;
+  activeHeroCountLevel: number;
+  activeSpeedLevel: number;
+  activeSpecialLevel: number;
   upgradeCosts: UpgradeCosts;
   onUpgradeHeroSpeed: () => void;
   onUpgradeHeroCount: () => void;
   onUpgradeSpecialDotChance: () => void;
+  onSetActiveHeroCountLevel: (level: number) => void;
+  onSetActiveSpeedLevel: (level: number) => void;
+  onSetActiveSpecialLevel: (level: number) => void;
 }
 
 export default function UpgradePanel({
@@ -18,12 +27,26 @@ export default function UpgradePanel({
   heroCount,
   heroSpeed,
   specialDotChance,
+  heroCountLevel,
+  speedLevel,
+  specialLevel,
+  activeHeroCountLevel,
+  activeSpeedLevel,
+  activeSpecialLevel,
   upgradeCosts,
   onUpgradeHeroSpeed,
   onUpgradeHeroCount,
   onUpgradeSpecialDotChance,
+  onSetActiveHeroCountLevel,
+  onSetActiveSpeedLevel,
+  onSetActiveSpecialLevel,
 }: UpgradePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
+
+  // Build label arrays for each upgrade type
+  const heroCountLabels = Array.from({ length: heroCountLevel + 1 }, (_, i) => `${i + 1}`);
+  const speedLabels = Array.from({ length: speedLevel + 1 }, (_, i) => `${(1 + i * 0.5).toFixed(1)}x`);
+  const specialLabels = Array.from({ length: specialLevel + 1 }, (_, i) => `${((i + 1) * 5)}%`);
 
   return (
     <div className={`${styles.panel} ${collapsed ? styles.collapsed : ""}`}>
@@ -55,6 +78,9 @@ export default function UpgradePanel({
             cost={upgradeCosts.heroSpeed}
             canAfford={money >= upgradeCosts.heroSpeed}
             onUpgrade={onUpgradeHeroSpeed}
+            levelLabels={speedLabels}
+            activeLevel={activeSpeedLevel}
+            onSetActiveLevel={onSetActiveSpeedLevel}
           />
           <UpgradeItem
             icon="fa-person-running"
@@ -63,6 +89,9 @@ export default function UpgradePanel({
             cost={upgradeCosts.heroCount}
             canAfford={money >= upgradeCosts.heroCount}
             onUpgrade={onUpgradeHeroCount}
+            levelLabels={heroCountLabels}
+            activeLevel={activeHeroCountLevel}
+            onSetActiveLevel={onSetActiveHeroCountLevel}
           />
           <UpgradeItem
             icon="fa-star"
@@ -71,6 +100,9 @@ export default function UpgradePanel({
             cost={upgradeCosts.specialDotChance}
             canAfford={money >= upgradeCosts.specialDotChance}
             onUpgrade={onUpgradeSpecialDotChance}
+            levelLabels={specialLabels}
+            activeLevel={activeSpecialLevel}
+            onSetActiveLevel={onSetActiveSpecialLevel}
           />
         </div>
 
@@ -96,26 +128,55 @@ interface UpgradeItemProps {
   cost: number;
   canAfford: boolean;
   onUpgrade: () => void;
+  levelLabels: string[];
+  activeLevel: number;
+  onSetActiveLevel: (level: number) => void;
 }
 
-function UpgradeItem({ icon, label, description, cost, canAfford, onUpgrade }: UpgradeItemProps) {
+function UpgradeItem({
+  icon,
+  label,
+  description,
+  cost,
+  canAfford,
+  onUpgrade,
+  levelLabels,
+  activeLevel,
+  onSetActiveLevel,
+}: UpgradeItemProps) {
   return (
     <div className={styles.upgradeItem}>
-      <div className={styles.upgradeInfo}>
-        <i className={`fa-solid ${icon} ${styles.upgradeIcon}`} />
-        <div>
-          <div className={styles.upgradeName}>{label}</div>
-          <div className={styles.upgradeDesc}>{description}</div>
+      <div className={styles.upgradeRow}>
+        <div className={styles.upgradeInfo}>
+          <i className={`fa-solid ${icon} ${styles.upgradeIcon}`} />
+          <div>
+            <div className={styles.upgradeName}>{label}</div>
+            <div className={styles.upgradeDesc}>{description}</div>
+          </div>
         </div>
+        <button
+          className={`${styles.upgradeButton} ${canAfford ? styles.canAfford : styles.cantAfford}`}
+          onClick={onUpgrade}
+          disabled={!canAfford}
+        >
+          <i className="fa-solid fa-circle" style={{ color: "#FFD700", fontSize: "0.75em" }} />
+          {cost === Infinity ? "MAX" : cost}
+        </button>
       </div>
-      <button
-        className={`${styles.upgradeButton} ${canAfford ? styles.canAfford : styles.cantAfford}`}
-        onClick={onUpgrade}
-        disabled={!canAfford}
-      >
-        <i className="fa-solid fa-circle" style={{ color: "#FFD700", fontSize: "0.75em" }} />
-        {cost}
-      </button>
+      {levelLabels.length > 1 && (
+        <div className={styles.levelSelector}>
+          {levelLabels.map((lbl, i) => (
+            <button
+              key={i}
+              className={`${styles.levelButton} ${i === activeLevel ? styles.levelButtonActive : ""}`}
+              onClick={() => onSetActiveLevel(i)}
+              title={lbl}
+            >
+              {lbl}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

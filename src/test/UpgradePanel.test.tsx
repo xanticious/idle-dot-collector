@@ -8,10 +8,19 @@ const defaultProps = {
   heroCount: 1,
   heroSpeed: 1,
   specialDotChance: 0.05,
+  heroCountLevel: 0,
+  speedLevel: 0,
+  specialLevel: 0,
+  activeHeroCountLevel: 0,
+  activeSpeedLevel: 0,
+  activeSpecialLevel: 0,
   upgradeCosts: { heroSpeed: 50, heroCount: 100, specialDotChance: 75 },
   onUpgradeHeroSpeed: vi.fn(),
   onUpgradeHeroCount: vi.fn(),
   onUpgradeSpecialDotChance: vi.fn(),
+  onSetActiveHeroCountLevel: vi.fn(),
+  onSetActiveSpeedLevel: vi.fn(),
+  onSetActiveSpecialLevel: vi.fn(),
 };
 
 describe("UpgradePanel", () => {
