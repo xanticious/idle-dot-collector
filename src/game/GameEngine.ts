@@ -1,22 +1,33 @@
-import { Application, Assets, Graphics, Sprite, Texture, Rectangle, Container } from 'pixi.js';
+import { Application, Assets, Sprite, Texture, Rectangle, Container } from 'pixi.js';
 import type { GameConfig, DotData, HeroData } from './types';
 import {
   HERO_SPRITE_SHEET,
   HERO_SPRITE_FRAMES,
   HERO_DISPLAY_HEIGHT,
+  HERO_ANIM_FPS,
   type AnimationKey,
 } from './heroSpriteDefinitions';
+import {
+  ORB_SPRITE_SHEET,
+  ORB_TYPES,
+  ORB_DISPLAY_SIZE,
+  ORB_ANIM_FPS,
+  type OrbType,
+} from './orbSpriteDefinitions';
 
-const DOT_COLOR = 0xffff00;
-const SPECIAL_DOT_COLOR = 0xffaa00;
 const DOT_SPAWN_INTERVAL = 60;
 const MAX_DOTS = 50;
-const DOT_RADIUS = 6;
-const SPECIAL_DOT_RADIUS = 10;
+/** Collision radius used for regular orbs */
+const ORB_RADIUS = ORB_DISPLAY_SIZE / 2;
+/** Collision radius used for special (high-value) orbs — displayed slightly larger */
+const SPECIAL_ORB_RADIUS = ORB_DISPLAY_SIZE * 0.7;
 
 interface InternalDot {
   data: DotData;
-  graphics: Graphics;
+  sprite: Sprite;
+  orbType: OrbType;
+  animFrameIndex: number;
+  animTimer: number;
   claimed: boolean;
 }
 
@@ -26,10 +37,13 @@ interface InternalHero {
   targetDotId: number | null;
   speed: number;
   direction: AnimationKey;
+  animFrameIndex: number;
+  animTimer: number;
 }
 
 export class GameEngine {
-  private heroTextures: Map<AnimationKey, Texture> = new Map();
+  private heroTextures: Map<AnimationKey, Texture[]> = new Map();
+  private orbTextures: Map<string, Texture[]> = new Map();
   private app: Application | null = null;
   private container: HTMLElement;
   private onCollect: (amount: number) => void;
@@ -68,20 +82,36 @@ export class GameEngine {
       return;
     }
 
-    // Load sprite sheet and build per-animation textures
+    // Load hero sprite sheet and build per-animation texture arrays
     const sheetTexture: Texture = await Assets.load(HERO_SPRITE_SHEET);
-    for (const [key, frame] of Object.entries(HERO_SPRITE_FRAMES) as [
+    for (const [key, frames] of Object.entries(HERO_SPRITE_FRAMES) as [
       Exclude<AnimationKey, 'walk_w'>,
       (typeof HERO_SPRITE_FRAMES)[keyof typeof HERO_SPRITE_FRAMES],
     ][]) {
-      const texture = new Texture({
-        source: sheetTexture.source,
-        frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
-      });
-      this.heroTextures.set(key, texture);
+      const textures = frames.map(
+        (frame) =>
+          new Texture({
+            source: sheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.heroTextures.set(key, textures);
     }
-    // walk_w reuses the walk_e texture; the sprite is flipped via scale.x
+    // walk_w reuses walk_e textures; the sprite is flipped via scale.x
     this.heroTextures.set('walk_w', this.heroTextures.get('walk_e')!);
+
+    // Load orb sprite sheet and build per-type texture arrays
+    const orbSheetTexture: Texture = await Assets.load(ORB_SPRITE_SHEET);
+    for (const orbType of ORB_TYPES) {
+      const textures = orbType.frames.map(
+        (frame) =>
+          new Texture({
+            source: orbSheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.orbTextures.set(orbType.name, textures);
+    }
 
     this.app = app;
     this.container.appendChild(this.app.canvas);
@@ -134,10 +164,11 @@ export class GameEngine {
     const x = 100 + Math.random() * (this.app.screen.width - 200);
     const y = 100 + Math.random() * (this.app.screen.height - 200);
 
-    const idleTexture = this.heroTextures.get('idle')!;
-    const scale = HERO_DISPLAY_HEIGHT / idleTexture.height;
+    const idleTextures = this.heroTextures.get('idle')!;
+    const firstTexture = idleTextures[0];
+    const scale = HERO_DISPLAY_HEIGHT / firstTexture.height;
 
-    const sprite = new Sprite(idleTexture);
+    const sprite = new Sprite(firstTexture);
     sprite.anchor.set(0.5, 0.5);
     sprite.scale.set(scale);
     sprite.x = x;
@@ -145,11 +176,13 @@ export class GameEngine {
     this.heroContainer.addChild(sprite);
 
     this.heroes.push({
-      data: { id, x, y, color: 0xffffff }, // color unused; sprite replaces geometric shape
+      data: { id, x, y, color: 0xffffff },
       sprite,
       targetDotId: null,
       speed: this.config.heroSpeed,
       direction: 'idle',
+      animFrameIndex: 0,
+      animTimer: 0,
     });
   }
 
@@ -160,26 +193,30 @@ export class GameEngine {
     const id = this.nextDotId++;
     const x = 20 + Math.random() * (this.app.screen.width - 40);
     const y = 20 + Math.random() * (this.app.screen.height - 40);
-    const radius = isSpecial ? SPECIAL_DOT_RADIUS : DOT_RADIUS;
-    const value = isSpecial ? 10 : 1;
 
-    const g = new Graphics();
-    if (isSpecial) {
-      g.circle(0, 0, radius + 4);
-      g.fill({ color: SPECIAL_DOT_COLOR, alpha: 0.3 });
-      g.circle(0, 0, radius);
-      g.fill(SPECIAL_DOT_COLOR);
-    } else {
-      g.circle(0, 0, radius);
-      g.fill(DOT_COLOR);
-    }
-    g.x = x;
-    g.y = y;
-    this.dotContainer.addChild(g);
+    // Pick orb type: white for regular, random high-value orb for special
+    const orbType = isSpecial
+      ? ORB_TYPES[Math.floor(Math.random() * (ORB_TYPES.length - 1)) + 1]
+      : ORB_TYPES[0];
+    const value = isSpecial ? orbType.value : 1;
+
+    const textures = this.orbTextures.get(orbType.name)!;
+    const firstTexture = textures[0];
+    const scale = ORB_DISPLAY_SIZE / Math.max(firstTexture.width, firstTexture.height);
+
+    const sprite = new Sprite(firstTexture);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.scale.set(scale * (isSpecial ? 1.4 : 1));
+    sprite.x = x;
+    sprite.y = y;
+    this.dotContainer.addChild(sprite);
 
     this.dots.push({
       data: { id, x, y, isSpecial, value },
-      graphics: g,
+      sprite,
+      orbType,
+      animFrameIndex: 0,
+      animTimer: 0,
       claimed: false,
     });
   }
@@ -194,6 +231,18 @@ export class GameEngine {
 
     for (const hero of this.heroes) {
       this.updateHero(hero);
+    }
+
+    // Animate orb sprites
+    for (const dot of this.dots) {
+      dot.animTimer++;
+      const interval = Math.max(1, Math.round(60 / ORB_ANIM_FPS));
+      if (dot.animTimer >= interval) {
+        dot.animTimer = 0;
+        const textures = this.orbTextures.get(dot.orbType.name)!;
+        dot.animFrameIndex = (dot.animFrameIndex + 1) % textures.length;
+        dot.sprite.texture = textures[dot.animFrameIndex];
+      }
     }
   }
 
@@ -220,11 +269,9 @@ export class GameEngine {
       const dy = dot.data.y - hero.sprite.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = hero.speed * 2;
+      const collisionRadius = dot.data.isSpecial ? SPECIAL_ORB_RADIUS : ORB_RADIUS;
 
-      if (
-        dist <
-        speed + (dot.data.isSpecial ? SPECIAL_DOT_RADIUS : DOT_RADIUS)
-      ) {
+      if (dist < speed + collisionRadius) {
         this.collectDot(dot, hero);
       } else {
         // Determine walking direction from dominant axis
@@ -242,13 +289,33 @@ export class GameEngine {
     } else {
       this.setHeroDirection(hero, 'idle');
     }
+
+    // Advance animation frame
+    hero.animTimer++;
+    const interval = Math.max(1, Math.round(60 / HERO_ANIM_FPS));
+    if (hero.animTimer >= interval) {
+      hero.animTimer = 0;
+      const textures = this.heroTextures.get(hero.direction)!;
+      hero.animFrameIndex = (hero.animFrameIndex + 1) % textures.length;
+      const texture = textures[hero.animFrameIndex];
+      const scale = HERO_DISPLAY_HEIGHT / texture.height;
+      hero.sprite.texture = texture;
+      if (hero.direction === 'walk_w') {
+        hero.sprite.scale.set(-scale, scale);
+      } else {
+        hero.sprite.scale.set(scale, scale);
+      }
+    }
   }
 
   private setHeroDirection(hero: InternalHero, direction: AnimationKey): void {
     if (hero.direction === direction) return;
     hero.direction = direction;
+    hero.animFrameIndex = 0;
+    hero.animTimer = 0;
 
-    const texture = this.heroTextures.get(direction)!;
+    const textures = this.heroTextures.get(direction)!;
+    const texture = textures[0];
     const scale = HERO_DISPLAY_HEIGHT / texture.height;
     hero.sprite.texture = texture;
     if (direction === 'walk_w') {
@@ -279,8 +346,8 @@ export class GameEngine {
   private collectDot(dot: InternalDot, hero: InternalHero): void {
     if (!this.dotContainer) return;
 
-    this.dotContainer.removeChild(dot.graphics);
-    dot.graphics.destroy();
+    this.dotContainer.removeChild(dot.sprite);
+    dot.sprite.destroy();
 
     const idx = this.dots.indexOf(dot);
     if (idx !== -1) this.dots.splice(idx, 1);
