@@ -28,9 +28,7 @@ export default function GameScreen() {
         activeHeroCountLevel={store.activeHeroCountLevel}
         activeSpeedLevel={store.activeSpeedLevel}
         unlockOrbsLevel={store.unlockOrbsLevel}
-        betterOrbsLevel={store.betterOrbsLevel}
         betterOrbsParam={store.betterOrbsParam}
-        heroHealthLevel={store.heroHealthLevel}
         heroMaxHp={store.heroMaxHp}
         questUnlockLevel={store.questUnlockLevel}
         activeQuestCreatureIdx={store.activeQuestCreatureIdx}

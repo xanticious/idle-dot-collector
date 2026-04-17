@@ -13,15 +13,15 @@ export interface OrbDef {
 }
 
 export const ORB_TYPES: OrbDef[] = [
-  { name: 'white',        value: 1,   color: 0xffffff, glowColor: 0xddddff },
-  { name: 'blue',         value: 2,   color: 0x4488ff, glowColor: 0x2266dd },
-  { name: 'dark blue',    value: 4,   color: 0x2255cc, glowColor: 0x113399 },
-  { name: 'green',        value: 8,   color: 0x44ff88, glowColor: 0x22dd66 },
-  { name: 'yellow-green', value: 16,  color: 0xaaff44, glowColor: 0x88ee22 },
-  { name: 'orange',       value: 32,  color: 0xff8800, glowColor: 0xdd6600 },
-  { name: 'dark orange',  value: 64,  color: 0xcc4400, glowColor: 0xaa3300 },
-  { name: 'purple',       value: 128, color: 0xaa44ff, glowColor: 0x8822dd },
-  { name: 'red',          value: 256, color: 0xff2222, glowColor: 0xdd0000 },
+  { name: 'White',        value: 1,   color: 0xffffff, glowColor: 0xddddff },
+  { name: 'Blue',         value: 2,   color: 0x4488ff, glowColor: 0x2266dd },
+  { name: 'Dark Blue',    value: 4,   color: 0x2255cc, glowColor: 0x113399 },
+  { name: 'Green',        value: 8,   color: 0x44ff88, glowColor: 0x22dd66 },
+  { name: 'Yellow-Green', value: 16,  color: 0xaaff44, glowColor: 0x88ee22 },
+  { name: 'Orange',       value: 32,  color: 0xff8800, glowColor: 0xdd6600 },
+  { name: 'Dark Orange',  value: 64,  color: 0xcc4400, glowColor: 0xaa3300 },
+  { name: 'Purple',       value: 128, color: 0xaa44ff, glowColor: 0x8822dd },
+  { name: 'Red',          value: 256, color: 0xff2222, glowColor: 0xdd0000 },
 ];
 
 // Base orb radius (px). Scales slightly with orb index for visual feedback.

@@ -13,9 +13,7 @@ interface UpgradePanelProps {
   activeHeroCountLevel: number;
   activeSpeedLevel: number;
   unlockOrbsLevel: number;
-  betterOrbsLevel: number;
   betterOrbsParam: number;
-  heroHealthLevel: number;
   heroMaxHp: number;
   questUnlockLevel: number;
   activeQuestCreatureIdx: number | null;
@@ -40,9 +38,7 @@ export default function UpgradePanel({
   activeHeroCountLevel,
   activeSpeedLevel,
   unlockOrbsLevel,
-  betterOrbsLevel,
   betterOrbsParam,
-  heroHealthLevel,
   heroMaxHp,
   questUnlockLevel,
   activeQuestCreatureIdx,
@@ -134,7 +130,6 @@ export default function UpgradePanel({
             cost={upgradeCosts.heroHealth}
             canAfford={money >= upgradeCosts.heroHealth}
             onUpgrade={onUpgradeHeroHealth}
-            maxedLabel={heroHealthLevel >= 10 ? "MAX" : undefined}
           />
 
           {/* ── Orb upgrades ── */}
@@ -150,7 +145,6 @@ export default function UpgradePanel({
             cost={upgradeCosts.unlockOrbs}
             canAfford={money >= upgradeCosts.unlockOrbs}
             onUpgrade={onUpgradeUnlockOrbs}
-            maxedLabel={upgradeCosts.unlockOrbs === Infinity ? "MAX" : undefined}
           />
           <UpgradeItem
             icon="fa-star"
@@ -159,7 +153,6 @@ export default function UpgradePanel({
             cost={upgradeCosts.betterOrbs}
             canAfford={money >= upgradeCosts.betterOrbs}
             onUpgrade={onUpgradeBetterOrbs}
-            maxedLabel={betterOrbsLevel >= 8 ? "MAX" : undefined}
           />
 
           {/* ── Quest upgrades ── */}
@@ -175,7 +168,6 @@ export default function UpgradePanel({
             cost={upgradeCosts.questUnlock}
             canAfford={money >= upgradeCosts.questUnlock}
             onUpgrade={onUpgradeQuestUnlock}
-            maxedLabel={upgradeCosts.questUnlock === Infinity ? "MAX" : undefined}
           />
         </div>
 
@@ -234,8 +226,7 @@ export default function UpgradePanel({
                   style={{ background: hex, boxShadow: `0 0 6px ${hex}` }}
                 />
                 <span>
-                  {orb.name.charAt(0).toUpperCase() + orb.name.slice(1)} ({orb.value}{" "}
-                  {orb.value === 1 ? "coin" : "coins"})
+                  {orb.name} ({orb.value} {orb.value === 1 ? "coin" : "coins"})
                 </span>
               </div>
             );
@@ -256,7 +247,6 @@ interface UpgradeItemProps {
   levelLabels?: string[];
   activeLevel?: number;
   onSetActiveLevel?: (level: number) => void;
-  maxedLabel?: string;
 }
 
 function UpgradeItem({
@@ -269,9 +259,8 @@ function UpgradeItem({
   levelLabels,
   activeLevel,
   onSetActiveLevel,
-  maxedLabel,
 }: UpgradeItemProps) {
-  const isMaxed = cost === Infinity || maxedLabel !== undefined;
+  const isMaxed = cost === Infinity;
   return (
     <div className={styles.upgradeItem}>
       <div className={styles.upgradeRow}>

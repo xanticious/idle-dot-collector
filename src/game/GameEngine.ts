@@ -11,10 +11,13 @@ import { CREATURE_TYPES } from './creatureDefinitions';
 
 const ORB_SPAWN_INTERVAL = 60;
 const MAX_ORBS = 50;
+// Prevent log(0) in exponential distribution sampling
+const MAX_RANDOM_VALUE = 0.9999;
 const ATTACK_RANGE = 35; // px — hero must be within this distance to attack
 const ATTACK_COOLDOWN = 60; // frames between each hero's attacks
 const HP_BAR_HERO_WIDTH = 40;
 const HP_BAR_CREATURE_WIDTH = 60;
+
 const HP_BAR_HEIGHT = 6;
 
 interface InternalOrb {
@@ -230,15 +233,15 @@ export class GameEngine {
   private spawnOrb(): void {
     if (!this.orbContainer || !this.app || this.orbs.length >= MAX_ORBS) return;
 
-    const numUnlocked = Math.min(this.config.unlockedOrbLevel + 1, ORB_TYPES.length);
+    const unlockedOrbCount = Math.min(this.config.unlockedOrbLevel + 1, ORB_TYPES.length);
 
     // Exponential distribution: betterOrbsParam > 1 shifts probability toward
     // higher-index (higher-value) orbs.
-    // orbIdx = floor(Exp(1) * betterOrbsParam), clamped to [0, numUnlocked - 1]
+    // orbIdx = floor(Exp(1) * betterOrbsParam), clamped to [0, unlockedOrbCount - 1]
     const param = this.config.betterOrbsParam;
     const u = Math.random();
-    const expVal = -Math.log(1 - Math.min(u, 0.9999)) * param;
-    const orbTypeIdx = Math.min(Math.floor(expVal), numUnlocked - 1);
+    const expVal = -Math.log(1 - Math.min(u, MAX_RANDOM_VALUE)) * param;
+    const orbTypeIdx = Math.min(Math.floor(expVal), unlockedOrbCount - 1);
     const orbDef = ORB_TYPES[orbTypeIdx];
 
     const id = this.nextOrbId++;
