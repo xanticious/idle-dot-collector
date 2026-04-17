@@ -4,10 +4,19 @@ import {
   HERO_SPRITE_SHEET,
   HERO_SPRITE_FRAMES,
   HERO_DISPLAY_HEIGHT,
+  HERO_ANIM_FPS,
   type AnimationKey,
 } from './heroSpriteDefinitions';
-import { ORB_TYPES, BASE_ORB_RADIUS, ORB_RADIUS_STEP } from './orbDefinitions';
-import { CREATURE_TYPES } from './creatureDefinitions';
+import {
+  ORB_SPRITE_SHEET,
+  ORB_TYPES,
+  ORB_DISPLAY_SIZE,
+  ORB_ANIM_FPS,
+} from './orbSpriteDefinitions';
+import {
+  CREATURE_SPRITE_SHEET,
+  CREATURE_TYPES,
+} from './creatureSpriteDefinitions';
 
 const ORB_SPAWN_INTERVAL = 60;
 const MAX_ORBS = 50;
@@ -17,14 +26,18 @@ const ATTACK_RANGE = 35; // px — hero must be within this distance to attack
 const ATTACK_COOLDOWN = 60; // frames between each hero's attacks
 const HP_BAR_HERO_WIDTH = 40;
 const HP_BAR_CREATURE_WIDTH = 60;
-
 const HP_BAR_HEIGHT = 6;
+/** Idle animation playback rate for creatures */
+const CREATURE_ANIM_FPS = 4;
+/** Collision radius for orbs */
+const ORB_RADIUS = ORB_DISPLAY_SIZE / 2;
 
 interface InternalOrb {
   data: OrbData;
-  graphics: Graphics;
+  sprite: Sprite;
+  animFrameIndex: number;
+  animTimer: number;
   claimed: boolean;
-  radius: number;
 }
 
 interface InternalHero {
@@ -33,6 +46,8 @@ interface InternalHero {
   targetOrbId: number | null;
   speed: number;
   direction: AnimationKey;
+  animFrameIndex: number;
+  animTimer: number;
   currentHp: number;
   maxHp: number;
   attackCooldown: number;
@@ -47,13 +62,17 @@ interface InternalCreature {
   y: number;
   currentHp: number;
   maxHp: number;
-  graphics: Graphics;
+  sprite: Sprite;
+  animFrameIndex: number;
+  animTimer: number;
   healthBarBg: Graphics;
   healthBar: Graphics;
 }
 
 export class GameEngine {
-  private heroTextures: Map<AnimationKey, Texture> = new Map();
+  private heroTextures: Map<AnimationKey, Texture[]> = new Map();
+  private orbTextures: Map<string, Texture[]> = new Map();
+  private creatureTextures: Map<string, Texture[]> = new Map();
   private app: Application | null = null;
   private container: HTMLElement;
   private onCollect: (amount: number) => void;
@@ -107,20 +126,49 @@ export class GameEngine {
       return;
     }
 
-    // Load sprite sheet and build per-animation textures
+    // Load hero sprite sheet and build per-animation texture arrays
     const sheetTexture: Texture = await Assets.load(HERO_SPRITE_SHEET);
-    for (const [key, frame] of Object.entries(HERO_SPRITE_FRAMES) as [
+    for (const [key, frames] of Object.entries(HERO_SPRITE_FRAMES) as [
       Exclude<AnimationKey, 'walk_w'>,
       (typeof HERO_SPRITE_FRAMES)[keyof typeof HERO_SPRITE_FRAMES],
     ][]) {
-      const texture = new Texture({
-        source: sheetTexture.source,
-        frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
-      });
-      this.heroTextures.set(key, texture);
+      const textures = frames.map(
+        (frame) =>
+          new Texture({
+            source: sheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.heroTextures.set(key, textures);
     }
-    // walk_w reuses the walk_e texture; the sprite is flipped via scale.x
+    // walk_w reuses walk_e textures; the sprite is flipped via scale.x
     this.heroTextures.set('walk_w', this.heroTextures.get('walk_e')!);
+
+    // Load orb sprite sheet and build per-type texture arrays
+    const orbSheetTexture: Texture = await Assets.load(ORB_SPRITE_SHEET);
+    for (const orbType of ORB_TYPES) {
+      const textures = orbType.frames.map(
+        (frame) =>
+          new Texture({
+            source: orbSheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.orbTextures.set(orbType.name, textures);
+    }
+
+    // Load creature sprite sheet and build per-type texture arrays
+    const creatureSheetTexture: Texture = await Assets.load(CREATURE_SPRITE_SHEET);
+    for (const creatureType of CREATURE_TYPES) {
+      const textures = creatureType.frames.map(
+        (frame) =>
+          new Texture({
+            source: creatureSheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.creatureTextures.set(creatureType.name, textures);
+    }
 
     this.app = app;
     this.container.appendChild(this.app.canvas);
@@ -198,10 +246,11 @@ export class GameEngine {
     const x = 100 + Math.random() * (this.app.screen.width - 200);
     const y = 100 + Math.random() * (this.app.screen.height - 200);
 
-    const idleTexture = this.heroTextures.get('idle')!;
-    const scale = HERO_DISPLAY_HEIGHT / idleTexture.height;
+    const idleTextures = this.heroTextures.get('idle')!;
+    const firstTexture = idleTextures[0];
+    const scale = HERO_DISPLAY_HEIGHT / firstTexture.height;
 
-    const sprite = new Sprite(idleTexture);
+    const sprite = new Sprite(firstTexture);
     sprite.anchor.set(0.5, 0.5);
     sprite.scale.set(scale);
     sprite.x = x;
@@ -221,6 +270,8 @@ export class GameEngine {
       targetOrbId: null,
       speed: this.config.heroSpeed,
       direction: 'idle',
+      animFrameIndex: 0,
+      animTimer: 0,
       currentHp: this.config.heroMaxHp,
       maxHp: this.config.heroMaxHp,
       attackCooldown: 0,
@@ -237,7 +288,7 @@ export class GameEngine {
 
     // Exponential distribution: betterOrbsParam > 1 shifts probability toward
     // higher-index (higher-value) orbs.
-    // orbIdx = floor(Exp(1) * betterOrbsParam), clamped to [0, unlockedOrbCount - 1]
+    // orbTypeIdx = floor(Exp(1) * betterOrbsParam), clamped to [0, unlockedOrbCount - 1]
     const param = this.config.betterOrbsParam;
     const u = Math.random();
     const expVal = -Math.log(1 - Math.min(u, MAX_RANDOM_VALUE)) * param;
@@ -247,22 +298,24 @@ export class GameEngine {
     const id = this.nextOrbId++;
     const x = 20 + Math.random() * (this.app.screen.width - 40);
     const y = 20 + Math.random() * (this.app.screen.height - 40);
-    const radius = BASE_ORB_RADIUS + orbTypeIdx * ORB_RADIUS_STEP;
 
-    const g = new Graphics();
-    g.circle(0, 0, radius + 4);
-    g.fill({ color: orbDef.glowColor, alpha: 0.35 });
-    g.circle(0, 0, radius);
-    g.fill(orbDef.color);
-    g.x = x;
-    g.y = y;
-    this.orbContainer.addChild(g);
+    const textures = this.orbTextures.get(orbDef.name)!;
+    const firstTexture = textures[0];
+    const scale = ORB_DISPLAY_SIZE / Math.max(firstTexture.width, firstTexture.height);
+
+    const sprite = new Sprite(firstTexture);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.scale.set(scale);
+    sprite.x = x;
+    sprite.y = y;
+    this.orbContainer.addChild(sprite);
 
     this.orbs.push({
       data: { id, x, y, orbTypeIndex: orbTypeIdx, value: orbDef.value },
-      graphics: g,
+      sprite,
+      animFrameIndex: 0,
+      animTimer: 0,
       claimed: false,
-      radius,
     });
   }
 
@@ -275,14 +328,16 @@ export class GameEngine {
     const x = this.app.screen.width / 2;
     const y = this.app.screen.height / 2;
 
-    const g = new Graphics();
-    g.rect(-25, -35, 50, 70);
-    g.fill(creatureDef.color);
-    g.rect(-25, -35, 50, 70);
-    g.stroke({ color: 0xffffff, alpha: 0.4, width: 2 });
-    g.x = x;
-    g.y = y;
-    this.creatureContainer.addChild(g);
+    const textures = this.creatureTextures.get(creatureDef.name)!;
+    const firstTexture = textures[0];
+    const scale = creatureDef.displayHeight / firstTexture.height;
+
+    const sprite = new Sprite(firstTexture);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.scale.set(scale);
+    sprite.x = x;
+    sprite.y = y;
+    this.creatureContainer.addChild(sprite);
 
     const healthBarBg = new Graphics();
     const healthBar = new Graphics();
@@ -295,7 +350,9 @@ export class GameEngine {
       y,
       currentHp: creatureDef.hp,
       maxHp: creatureDef.hp,
-      graphics: g,
+      sprite,
+      animFrameIndex: 0,
+      animTimer: 0,
       healthBarBg,
       healthBar,
     };
@@ -317,8 +374,8 @@ export class GameEngine {
 
   private removeCreature(): void {
     if (!this.creature || !this.creatureContainer || !this.uiContainer) return;
-    this.creatureContainer.removeChild(this.creature.graphics);
-    this.creature.graphics.destroy();
+    this.creatureContainer.removeChild(this.creature.sprite);
+    this.creature.sprite.destroy();
     this.uiContainer.removeChild(this.creature.healthBarBg);
     this.creature.healthBarBg.destroy();
     this.uiContainer.removeChild(this.creature.healthBar);
@@ -377,16 +434,39 @@ export class GameEngine {
       }
     }
 
-    if (questActive && this.creature) {
+    // Animate creature and draw its health bar
+    if (this.creature) {
+      const creatureDef = CREATURE_TYPES[this.creature.creatureIdx];
       this.drawHealthBar(
         this.creature.healthBarBg,
         this.creature.healthBar,
         this.creature.x,
-        this.creature.y - 50,
+        this.creature.y - creatureDef.displayHeight / 2 - 12,
         HP_BAR_CREATURE_WIDTH,
         this.creature.currentHp,
         this.creature.maxHp,
       );
+
+      this.creature.animTimer++;
+      const creatureInterval = Math.max(1, Math.round(60 / CREATURE_ANIM_FPS));
+      if (this.creature.animTimer >= creatureInterval) {
+        this.creature.animTimer = 0;
+        const textures = this.creatureTextures.get(creatureDef.name)!;
+        this.creature.animFrameIndex = (this.creature.animFrameIndex + 1) % textures.length;
+        this.creature.sprite.texture = textures[this.creature.animFrameIndex];
+      }
+    }
+
+    // Animate orb sprites
+    for (const orb of this.orbs) {
+      orb.animTimer++;
+      const interval = Math.max(1, Math.round(60 / ORB_ANIM_FPS));
+      if (orb.animTimer >= interval) {
+        orb.animTimer = 0;
+        const textures = this.orbTextures.get(ORB_TYPES[orb.data.orbTypeIndex].name)!;
+        orb.animFrameIndex = (orb.animFrameIndex + 1) % textures.length;
+        orb.sprite.texture = textures[orb.animFrameIndex];
+      }
     }
   }
 
@@ -414,7 +494,7 @@ export class GameEngine {
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = hero.speed * 2;
 
-      if (dist < speed + orb.radius) {
+      if (dist < speed + ORB_RADIUS) {
         this.collectOrb(orb, hero);
       } else {
         this.moveHeroToward(hero, dx, dy, dist, speed);
@@ -423,6 +503,7 @@ export class GameEngine {
       this.setHeroDirection(hero, 'idle');
     }
 
+    this.advanceHeroAnimation(hero);
     hero.healthBar.visible = false;
     hero.healthBarBg.visible = false;
   }
@@ -472,6 +553,8 @@ export class GameEngine {
       this.moveHeroToward(hero, dx, dy, dist, speed);
     }
 
+    this.advanceHeroAnimation(hero);
+
     // Update hero health bar
     this.drawHealthBar(
       hero.healthBarBg,
@@ -484,6 +567,24 @@ export class GameEngine {
     );
     hero.healthBar.visible = true;
     hero.healthBarBg.visible = true;
+  }
+
+  private advanceHeroAnimation(hero: InternalHero): void {
+    hero.animTimer++;
+    const interval = Math.max(1, Math.round(60 / HERO_ANIM_FPS));
+    if (hero.animTimer >= interval) {
+      hero.animTimer = 0;
+      const textures = this.heroTextures.get(hero.direction)!;
+      hero.animFrameIndex = (hero.animFrameIndex + 1) % textures.length;
+      const texture = textures[hero.animFrameIndex];
+      const scale = HERO_DISPLAY_HEIGHT / texture.height;
+      hero.sprite.texture = texture;
+      if (hero.direction === 'walk_w') {
+        hero.sprite.scale.set(-scale, scale);
+      } else {
+        hero.sprite.scale.set(scale, scale);
+      }
+    }
   }
 
   private checkQuestFail(): void {
@@ -515,8 +616,11 @@ export class GameEngine {
   private setHeroDirection(hero: InternalHero, direction: AnimationKey): void {
     if (hero.direction === direction) return;
     hero.direction = direction;
+    hero.animFrameIndex = 0;
+    hero.animTimer = 0;
 
-    const texture = this.heroTextures.get(direction)!;
+    const textures = this.heroTextures.get(direction)!;
+    const texture = textures[0];
     const scale = HERO_DISPLAY_HEIGHT / texture.height;
     hero.sprite.texture = texture;
     if (direction === 'walk_w') {
@@ -547,8 +651,8 @@ export class GameEngine {
   private collectOrb(orb: InternalOrb, hero: InternalHero): void {
     if (!this.orbContainer) return;
 
-    this.orbContainer.removeChild(orb.graphics);
-    orb.graphics.destroy();
+    this.orbContainer.removeChild(orb.sprite);
+    orb.sprite.destroy();
 
     const idx = this.orbs.indexOf(orb);
     if (idx !== -1) this.orbs.splice(idx, 1);

@@ -1,7 +1,7 @@
 import { useState, useCallback } from "react";
 import type { UpgradeCosts } from "../game/types";
-import { QUEST_BUY_COSTS, CREATURE_TYPES } from "../game/creatureDefinitions";
-import { ORB_TYPES } from "../game/orbDefinitions";
+import { QUEST_BUY_COSTS, CREATURE_TYPES } from "../game/creatureSpriteDefinitions";
+import { ORB_TYPES } from "../game/orbSpriteDefinitions";
 
 const BASE_COSTS: UpgradeCosts = {
   heroSpeed: 50,

@@ -1,8 +1,16 @@
 import { useState } from "react";
 import type { UpgradeCosts } from "../../game/types";
-import { ORB_TYPES } from "../../game/orbDefinitions";
-import { CREATURE_TYPES, QUEST_BUY_COSTS } from "../../game/creatureDefinitions";
+import { ORB_TYPES } from "../../game/orbSpriteDefinitions";
+import { CREATURE_TYPES, QUEST_BUY_COSTS } from "../../game/creatureSpriteDefinitions";
 import styles from "./UpgradePanel.module.css";
+
+/** Convert a kebab-case sprite name to Title Case. e.g. 'dark-blue' → 'Dark Blue' */
+function formatSpriteName(name: string): string {
+  return name
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 interface UpgradePanelProps {
   money: number;
@@ -68,13 +76,13 @@ export default function UpgradePanel({
   // Next orb to unlock
   const nextOrbName =
     unlockOrbsLevel < ORB_TYPES.length
-      ? ORB_TYPES[unlockOrbsLevel].name
+      ? formatSpriteName(ORB_TYPES[unlockOrbsLevel].name)
       : null;
 
   // Active quest creature name
   const activeCreatureName =
     activeQuestCreatureIdx !== null
-      ? CREATURE_TYPES[activeQuestCreatureIdx]?.name
+      ? formatSpriteName(CREATURE_TYPES[activeQuestCreatureIdx]?.name ?? '')
       : null;
 
   return (
@@ -162,7 +170,7 @@ export default function UpgradePanel({
             label="Unlock Quest"
             description={
               questUnlockLevel < CREATURE_TYPES.length
-                ? `Next: ${CREATURE_TYPES[questUnlockLevel]?.name ?? "?"}`
+                ? `Next: ${formatSpriteName(CREATURE_TYPES[questUnlockLevel]?.name ?? '?')}`
                 : `All ${CREATURE_TYPES.length} quest levels unlocked`
             }
             cost={upgradeCosts.questUnlock}
@@ -198,7 +206,7 @@ export default function UpgradePanel({
                       disabled={!canAfford}
                       title={`HP: ${creature.hp} | Dmg: ${creature.damage} | Reward: ${creature.reward}`}
                     >
-                      <span className={styles.questName}>{creature.name}</span>
+                      <span className={styles.questName}>{formatSpriteName(creature.name)}</span>
                       <span className={styles.questCost}>
                         <i
                           className="fa-solid fa-circle"
@@ -226,7 +234,7 @@ export default function UpgradePanel({
                   style={{ background: hex, boxShadow: `0 0 6px ${hex}` }}
                 />
                 <span>
-                  {orb.name} ({orb.value} {orb.value === 1 ? "coin" : "coins"})
+                  {formatSpriteName(orb.name)} ({orb.value} {orb.value === 1 ? "coin" : "coins"})
                 </span>
               </div>
             );
