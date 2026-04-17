@@ -15,16 +15,22 @@ export interface CreatureType {
   name: string;
   hp: number;
   damage: number;
+  /** Coins awarded to the player on defeat */
+  reward: number;
   /** Target display height in pixels */
   displayHeight: number;
   frames: SpriteFrame[];
 }
+
+/** One-time purchase cost to start a quest at each creature level */
+export const QUEST_BUY_COSTS = [200, 500, 1200, 3000, 8000];
 
 export const CREATURE_TYPES: CreatureType[] = [
   {
     name: 'green-dragon',
     hp: 10,
     damage: 2,
+    reward: 60,
     displayHeight: 160,
     frames: [
       { x: 59, y: 10, width: 331, height: 250 },
@@ -35,6 +41,7 @@ export const CREATURE_TYPES: CreatureType[] = [
     name: 'red-dragon',
     hp: 20,
     damage: 4,
+    reward: 200,
     displayHeight: 160,
     frames: [
       { x: 771, y: 10, width: 347, height: 250 },
@@ -45,6 +52,7 @@ export const CREATURE_TYPES: CreatureType[] = [
     name: 'boar',
     hp: 40,
     damage: 8,
+    reward: 600,
     displayHeight: 120,
     frames: [
       { x: 65, y: 289, width: 291, height: 202 },
@@ -57,6 +65,7 @@ export const CREATURE_TYPES: CreatureType[] = [
     name: 'dark-knight',
     hp: 80,
     damage: 16,
+    reward: 2000,
     displayHeight: 128,
     frames: [
       { x: 60, y: 520, width: 257, height: 243 },
@@ -70,6 +79,7 @@ export const CREATURE_TYPES: CreatureType[] = [
     name: 'evil-wizard',
     hp: 160,
     damage: 32,
+    reward: 6000,
     displayHeight: 128,
     frames: [
       { x: 120, y: 774, width: 275, height: 239 },

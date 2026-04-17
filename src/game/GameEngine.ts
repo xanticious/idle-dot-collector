@@ -1,5 +1,5 @@
-import { Application, Assets, Sprite, Texture, Rectangle, Container } from 'pixi.js';
-import type { GameConfig, DotData, HeroData } from './types';
+import { Application, Assets, Graphics, Sprite, Texture, Rectangle, Container } from 'pixi.js';
+import type { GameConfig, OrbData, HeroData } from './types';
 import {
   HERO_SPRITE_SHEET,
   HERO_SPRITE_FRAMES,
@@ -12,20 +12,29 @@ import {
   ORB_TYPES,
   ORB_DISPLAY_SIZE,
   ORB_ANIM_FPS,
-  type OrbType,
 } from './orbSpriteDefinitions';
+import {
+  CREATURE_SPRITE_SHEET,
+  CREATURE_TYPES,
+} from './creatureSpriteDefinitions';
 
-const DOT_SPAWN_INTERVAL = 60;
-const MAX_DOTS = 50;
-/** Collision radius used for regular orbs */
+const ORB_SPAWN_INTERVAL = 60;
+const MAX_ORBS = 50;
+// Prevent log(0) in exponential distribution sampling
+const MAX_RANDOM_VALUE = 0.9999;
+const ATTACK_RANGE = 35; // px — hero must be within this distance to attack
+const ATTACK_COOLDOWN = 60; // frames between each hero's attacks
+const HP_BAR_HERO_WIDTH = 40;
+const HP_BAR_CREATURE_WIDTH = 60;
+const HP_BAR_HEIGHT = 6;
+/** Idle animation playback rate for creatures */
+const CREATURE_ANIM_FPS = 4;
+/** Collision radius for orbs */
 const ORB_RADIUS = ORB_DISPLAY_SIZE / 2;
-/** Collision radius used for special (high-value) orbs — displayed slightly larger */
-const SPECIAL_ORB_RADIUS = ORB_DISPLAY_SIZE * 0.7;
 
-interface InternalDot {
-  data: DotData;
+interface InternalOrb {
+  data: OrbData;
   sprite: Sprite;
-  orbType: OrbType;
   animFrameIndex: number;
   animTimer: number;
   claimed: boolean;
@@ -34,35 +43,70 @@ interface InternalDot {
 interface InternalHero {
   data: HeroData;
   sprite: Sprite;
-  targetDotId: number | null;
+  targetOrbId: number | null;
   speed: number;
   direction: AnimationKey;
   animFrameIndex: number;
   animTimer: number;
+  currentHp: number;
+  maxHp: number;
+  attackCooldown: number;
+  dead: boolean;
+  healthBarBg: Graphics;
+  healthBar: Graphics;
+}
+
+interface InternalCreature {
+  creatureIdx: number;
+  x: number;
+  y: number;
+  currentHp: number;
+  maxHp: number;
+  sprite: Sprite;
+  animFrameIndex: number;
+  animTimer: number;
+  healthBarBg: Graphics;
+  healthBar: Graphics;
 }
 
 export class GameEngine {
   private heroTextures: Map<AnimationKey, Texture[]> = new Map();
   private orbTextures: Map<string, Texture[]> = new Map();
+  private creatureTextures: Map<string, Texture[]> = new Map();
   private app: Application | null = null;
   private container: HTMLElement;
   private onCollect: (amount: number) => void;
-  private dots: InternalDot[] = [];
+  private onQuestComplete: (reward: number) => void;
+  private onQuestFail: () => void;
+  private orbs: InternalOrb[] = [];
   private heroes: InternalHero[] = [];
+  private creature: InternalCreature | null = null;
   private config: GameConfig = {
     heroCount: 1,
     heroSpeed: 1,
-    specialDotChance: 0.05,
+    unlockedOrbLevel: 0,
+    betterOrbsParam: 1,
+    heroMaxHp: 10,
+    activeQuestCreatureIdx: null,
   };
   private frameCount = 0;
-  private nextDotId = 0;
+  private nextOrbId = 0;
   private heroContainer: Container | null = null;
-  private dotContainer: Container | null = null;
+  private orbContainer: Container | null = null;
+  private creatureContainer: Container | null = null;
+  private uiContainer: Container | null = null;
   private destroyed = false;
 
-  constructor(container: HTMLElement, onCollect: (amount: number) => void) {
+  constructor(
+    container: HTMLElement,
+    onCollect: (amount: number) => void,
+    onQuestComplete: (reward: number) => void,
+    onQuestFail: () => void,
+  ) {
     this.container = container;
     this.onCollect = onCollect;
+    this.onQuestComplete = onQuestComplete;
+    this.onQuestFail = onQuestFail;
   }
 
   async init(config: GameConfig): Promise<void> {
@@ -113,18 +157,35 @@ export class GameEngine {
       this.orbTextures.set(orbType.name, textures);
     }
 
+    // Load creature sprite sheet and build per-type texture arrays
+    const creatureSheetTexture: Texture = await Assets.load(CREATURE_SPRITE_SHEET);
+    for (const creatureType of CREATURE_TYPES) {
+      const textures = creatureType.frames.map(
+        (frame) =>
+          new Texture({
+            source: creatureSheetTexture.source,
+            frame: new Rectangle(frame.x, frame.y, frame.width, frame.height),
+          }),
+      );
+      this.creatureTextures.set(creatureType.name, textures);
+    }
+
     this.app = app;
     this.container.appendChild(this.app.canvas);
 
-    this.dotContainer = new Container();
+    this.orbContainer = new Container();
+    this.creatureContainer = new Container();
     this.heroContainer = new Container();
-    this.app.stage.addChild(this.dotContainer);
+    this.uiContainer = new Container();
+    this.app.stage.addChild(this.orbContainer);
+    this.app.stage.addChild(this.creatureContainer);
     this.app.stage.addChild(this.heroContainer);
+    this.app.stage.addChild(this.uiContainer);
 
     this.syncHeroCount();
 
     for (let i = 0; i < 10; i++) {
-      this.spawnDot();
+      this.spawnOrb();
     }
 
     this.app.ticker.add(this.update.bind(this));
@@ -132,6 +193,7 @@ export class GameEngine {
 
   updateConfig(config: GameConfig): void {
     const prevHeroCount = this.config.heroCount;
+    const prevQuestIdx = this.config.activeQuestCreatureIdx;
     this.config = config;
 
     if (config.heroCount !== prevHeroCount) {
@@ -140,6 +202,17 @@ export class GameEngine {
 
     for (const hero of this.heroes) {
       hero.speed = config.heroSpeed;
+      hero.maxHp = config.heroMaxHp;
+      hero.currentHp = Math.min(hero.currentHp, hero.maxHp);
+    }
+
+    // Handle quest state changes
+    if (config.activeQuestCreatureIdx !== prevQuestIdx) {
+      if (config.activeQuestCreatureIdx !== null && this.creature === null) {
+        this.spawnCreature(config.activeQuestCreatureIdx);
+      } else if (config.activeQuestCreatureIdx === null && this.creature !== null) {
+        this.removeCreature();
+      }
     }
   }
 
@@ -152,13 +225,22 @@ export class GameEngine {
 
     while (this.heroes.length > this.config.heroCount) {
       const hero = this.heroes.pop()!;
-      this.heroContainer.removeChild(hero.sprite);
-      hero.sprite.destroy();
+      this.removeHeroGraphics(hero);
     }
   }
 
+  private removeHeroGraphics(hero: InternalHero): void {
+    if (!this.heroContainer || !this.uiContainer) return;
+    this.heroContainer.removeChild(hero.sprite);
+    hero.sprite.destroy();
+    this.uiContainer.removeChild(hero.healthBarBg);
+    hero.healthBarBg.destroy();
+    this.uiContainer.removeChild(hero.healthBar);
+    hero.healthBar.destroy();
+  }
+
   private addHero(): void {
-    if (!this.heroContainer || !this.app) return;
+    if (!this.heroContainer || !this.uiContainer || !this.app) return;
 
     const id = this.heroes.length;
     const x = 100 + Math.random() * (this.app.screen.width - 200);
@@ -175,73 +257,215 @@ export class GameEngine {
     sprite.y = y;
     this.heroContainer.addChild(sprite);
 
+    const healthBarBg = new Graphics();
+    const healthBar = new Graphics();
+    healthBarBg.visible = false;
+    healthBar.visible = false;
+    this.uiContainer.addChild(healthBarBg);
+    this.uiContainer.addChild(healthBar);
+
     this.heroes.push({
       data: { id, x, y, color: 0xffffff },
       sprite,
-      targetDotId: null,
+      targetOrbId: null,
       speed: this.config.heroSpeed,
       direction: 'idle',
       animFrameIndex: 0,
       animTimer: 0,
+      currentHp: this.config.heroMaxHp,
+      maxHp: this.config.heroMaxHp,
+      attackCooldown: 0,
+      dead: false,
+      healthBarBg,
+      healthBar,
     });
   }
 
-  private spawnDot(): void {
-    if (!this.dotContainer || !this.app || this.dots.length >= MAX_DOTS) return;
+  private spawnOrb(): void {
+    if (!this.orbContainer || !this.app || this.orbs.length >= MAX_ORBS) return;
 
-    const isSpecial = Math.random() < this.config.specialDotChance;
-    const id = this.nextDotId++;
+    const unlockedOrbCount = Math.min(this.config.unlockedOrbLevel + 1, ORB_TYPES.length);
+
+    // Exponential distribution: betterOrbsParam > 1 shifts probability toward
+    // higher-index (higher-value) orbs.
+    // orbTypeIdx = floor(Exp(1) * betterOrbsParam), clamped to [0, unlockedOrbCount - 1]
+    const param = this.config.betterOrbsParam;
+    const u = Math.random();
+    const expVal = -Math.log(1 - Math.min(u, MAX_RANDOM_VALUE)) * param;
+    const orbTypeIdx = Math.min(Math.floor(expVal), unlockedOrbCount - 1);
+    const orbDef = ORB_TYPES[orbTypeIdx];
+
+    const id = this.nextOrbId++;
     const x = 20 + Math.random() * (this.app.screen.width - 40);
     const y = 20 + Math.random() * (this.app.screen.height - 40);
 
-    // Pick orb type: white for regular, random high-value orb for special
-    const orbType = isSpecial
-      ? ORB_TYPES[Math.floor(Math.random() * (ORB_TYPES.length - 1)) + 1]
-      : ORB_TYPES[0];
-    const value = isSpecial ? orbType.value : 1;
-
-    const textures = this.orbTextures.get(orbType.name)!;
+    const textures = this.orbTextures.get(orbDef.name)!;
     const firstTexture = textures[0];
     const scale = ORB_DISPLAY_SIZE / Math.max(firstTexture.width, firstTexture.height);
 
     const sprite = new Sprite(firstTexture);
     sprite.anchor.set(0.5, 0.5);
-    sprite.scale.set(scale * (isSpecial ? 1.4 : 1));
+    sprite.scale.set(scale);
     sprite.x = x;
     sprite.y = y;
-    this.dotContainer.addChild(sprite);
+    this.orbContainer.addChild(sprite);
 
-    this.dots.push({
-      data: { id, x, y, isSpecial, value },
+    this.orbs.push({
+      data: { id, x, y, orbTypeIndex: orbTypeIdx, value: orbDef.value },
       sprite,
-      orbType,
       animFrameIndex: 0,
       animTimer: 0,
       claimed: false,
     });
   }
 
+  private spawnCreature(creatureIdx: number): void {
+    if (!this.creatureContainer || !this.uiContainer || !this.app) return;
+
+    const creatureDef = CREATURE_TYPES[creatureIdx];
+    if (!creatureDef) return;
+
+    const x = this.app.screen.width / 2;
+    const y = this.app.screen.height / 2;
+
+    const textures = this.creatureTextures.get(creatureDef.name)!;
+    const firstTexture = textures[0];
+    const scale = creatureDef.displayHeight / firstTexture.height;
+
+    const sprite = new Sprite(firstTexture);
+    sprite.anchor.set(0.5, 0.5);
+    sprite.scale.set(scale);
+    sprite.x = x;
+    sprite.y = y;
+    this.creatureContainer.addChild(sprite);
+
+    const healthBarBg = new Graphics();
+    const healthBar = new Graphics();
+    this.uiContainer.addChild(healthBarBg);
+    this.uiContainer.addChild(healthBar);
+
+    this.creature = {
+      creatureIdx,
+      x,
+      y,
+      currentHp: creatureDef.hp,
+      maxHp: creatureDef.hp,
+      sprite,
+      animFrameIndex: 0,
+      animTimer: 0,
+      healthBarBg,
+      healthBar,
+    };
+
+    // Reset heroes for quest
+    for (const hero of this.heroes) {
+      hero.targetOrbId = null;
+      hero.attackCooldown = 0;
+      hero.dead = false;
+      hero.sprite.visible = true;
+      hero.currentHp = hero.maxHp;
+    }
+
+    // Unclaim all orbs so heroes don't have stale targets
+    for (const orb of this.orbs) {
+      orb.claimed = false;
+    }
+  }
+
+  private removeCreature(): void {
+    if (!this.creature || !this.creatureContainer || !this.uiContainer) return;
+    this.creatureContainer.removeChild(this.creature.sprite);
+    this.creature.sprite.destroy();
+    this.uiContainer.removeChild(this.creature.healthBarBg);
+    this.creature.healthBarBg.destroy();
+    this.uiContainer.removeChild(this.creature.healthBar);
+    this.creature.healthBar.destroy();
+    this.creature = null;
+
+    // Restore heroes after quest ends
+    for (const hero of this.heroes) {
+      hero.dead = false;
+      hero.sprite.visible = true;
+      hero.currentHp = hero.maxHp;
+      hero.targetOrbId = null;
+      hero.healthBar.visible = false;
+      hero.healthBarBg.visible = false;
+      this.setHeroDirection(hero, 'idle');
+    }
+  }
+
+  private drawHealthBar(
+    barBg: Graphics,
+    bar: Graphics,
+    cx: number,
+    topY: number,
+    width: number,
+    hp: number,
+    maxHp: number,
+  ): void {
+    const ratio = Math.max(0, hp / maxHp);
+    const fillColor = ratio > 0.6 ? 0x44ff44 : ratio > 0.3 ? 0xffcc00 : 0xff4444;
+
+    barBg.clear();
+    barBg.rect(cx - width / 2, topY, width, HP_BAR_HEIGHT);
+    barBg.fill({ color: 0x333355, alpha: 0.85 });
+
+    bar.clear();
+    bar.rect(cx - width / 2, topY, width * ratio, HP_BAR_HEIGHT);
+    bar.fill(fillColor);
+  }
+
   private update(): void {
     if (this.destroyed || !this.app) return;
     this.frameCount++;
 
-    if (this.frameCount % DOT_SPAWN_INTERVAL === 0) {
-      this.spawnDot();
+    if (this.frameCount % ORB_SPAWN_INTERVAL === 0) {
+      this.spawnOrb();
     }
 
+    const questActive = this.creature !== null;
+
     for (const hero of this.heroes) {
-      this.updateHero(hero);
+      if (hero.dead) continue;
+      if (questActive) {
+        this.updateHeroQuest(hero);
+      } else {
+        this.updateHero(hero);
+      }
+    }
+
+    // Animate creature and draw its health bar
+    if (this.creature) {
+      const creatureDef = CREATURE_TYPES[this.creature.creatureIdx];
+      this.drawHealthBar(
+        this.creature.healthBarBg,
+        this.creature.healthBar,
+        this.creature.x,
+        this.creature.y - creatureDef.displayHeight / 2 - 12,
+        HP_BAR_CREATURE_WIDTH,
+        this.creature.currentHp,
+        this.creature.maxHp,
+      );
+
+      this.creature.animTimer++;
+      const creatureInterval = Math.max(1, Math.round(60 / CREATURE_ANIM_FPS));
+      if (this.creature.animTimer >= creatureInterval) {
+        this.creature.animTimer = 0;
+        const textures = this.creatureTextures.get(creatureDef.name)!;
+        this.creature.animFrameIndex = (this.creature.animFrameIndex + 1) % textures.length;
+        this.creature.sprite.texture = textures[this.creature.animFrameIndex];
+      }
     }
 
     // Animate orb sprites
-    for (const dot of this.dots) {
-      dot.animTimer++;
+    for (const orb of this.orbs) {
+      orb.animTimer++;
       const interval = Math.max(1, Math.round(60 / ORB_ANIM_FPS));
-      if (dot.animTimer >= interval) {
-        dot.animTimer = 0;
-        const textures = this.orbTextures.get(dot.orbType.name)!;
-        dot.animFrameIndex = (dot.animFrameIndex + 1) % textures.length;
-        dot.sprite.texture = textures[dot.animFrameIndex];
+      if (orb.animTimer >= interval) {
+        orb.animTimer = 0;
+        const textures = this.orbTextures.get(ORB_TYPES[orb.data.orbTypeIndex].name)!;
+        orb.animFrameIndex = (orb.animFrameIndex + 1) % textures.length;
+        orb.sprite.texture = textures[orb.animFrameIndex];
       }
     }
   }
@@ -249,48 +473,103 @@ export class GameEngine {
   private updateHero(hero: InternalHero): void {
     if (!this.app) return;
 
-    if (hero.targetDotId === null) {
-      const target = this.findNearestUnclaimedDot(hero);
+    if (hero.targetOrbId === null) {
+      const target = this.findNearestUnclaimedOrb(hero);
       if (target) {
-        hero.targetDotId = target.data.id;
+        hero.targetOrbId = target.data.id;
         target.claimed = true;
       }
     }
 
-    if (hero.targetDotId !== null) {
-      const dot = this.dots.find((d) => d.data.id === hero.targetDotId);
-      if (!dot) {
-        hero.targetDotId = null;
+    if (hero.targetOrbId !== null) {
+      const orb = this.orbs.find((o) => o.data.id === hero.targetOrbId);
+      if (!orb) {
+        hero.targetOrbId = null;
         this.setHeroDirection(hero, 'idle');
         return;
       }
 
-      const dx = dot.data.x - hero.sprite.x;
-      const dy = dot.data.y - hero.sprite.y;
+      const dx = orb.data.x - hero.sprite.x;
+      const dy = orb.data.y - hero.sprite.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       const speed = hero.speed * 2;
-      const collisionRadius = dot.data.isSpecial ? SPECIAL_ORB_RADIUS : ORB_RADIUS;
 
-      if (dist < speed + collisionRadius) {
-        this.collectDot(dot, hero);
+      if (dist < speed + ORB_RADIUS) {
+        this.collectOrb(orb, hero);
       } else {
-        // Determine walking direction from dominant axis
-        let newDirection: AnimationKey;
-        if (Math.abs(dx) >= Math.abs(dy)) {
-          newDirection = dx > 0 ? 'walk_e' : 'walk_w';
-        } else {
-          newDirection = dy > 0 ? 'walk_s' : 'walk_n';
-        }
-        this.setHeroDirection(hero, newDirection);
-
-        hero.sprite.x += (dx / dist) * speed;
-        hero.sprite.y += (dy / dist) * speed;
+        this.moveHeroToward(hero, dx, dy, dist, speed);
       }
     } else {
       this.setHeroDirection(hero, 'idle');
     }
 
-    // Advance animation frame
+    this.advanceHeroAnimation(hero);
+    hero.healthBar.visible = false;
+    hero.healthBarBg.visible = false;
+  }
+
+  private updateHeroQuest(hero: InternalHero): void {
+    if (!this.creature || !this.app) return;
+
+    const dx = this.creature.x - hero.sprite.x;
+    const dy = this.creature.y - hero.sprite.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    const speed = hero.speed * 2;
+
+    if (hero.attackCooldown > 0) {
+      hero.attackCooldown--;
+    }
+
+    if (dist <= ATTACK_RANGE) {
+      this.setHeroDirection(hero, 'idle');
+
+      if (hero.attackCooldown === 0) {
+        hero.attackCooldown = ATTACK_COOLDOWN;
+
+        const creatureDef = CREATURE_TYPES[this.creature.creatureIdx];
+
+        // Hero takes damage from creature
+        hero.currentHp -= creatureDef.damage;
+        // Creature takes 1 damage from hero
+        this.creature.currentHp -= 1;
+
+        if (hero.currentHp <= 0) {
+          hero.dead = true;
+          hero.sprite.visible = false;
+          hero.healthBar.visible = false;
+          hero.healthBarBg.visible = false;
+          this.checkQuestFail();
+          return;
+        }
+
+        if (this.creature.currentHp <= 0) {
+          const reward = creatureDef.reward;
+          this.removeCreature();
+          this.onQuestComplete(reward);
+          return;
+        }
+      }
+    } else {
+      this.moveHeroToward(hero, dx, dy, dist, speed);
+    }
+
+    this.advanceHeroAnimation(hero);
+
+    // Update hero health bar
+    this.drawHealthBar(
+      hero.healthBarBg,
+      hero.healthBar,
+      hero.sprite.x,
+      hero.sprite.y - HERO_DISPLAY_HEIGHT / 2 - 12,
+      HP_BAR_HERO_WIDTH,
+      hero.currentHp,
+      hero.maxHp,
+    );
+    hero.healthBar.visible = true;
+    hero.healthBarBg.visible = true;
+  }
+
+  private advanceHeroAnimation(hero: InternalHero): void {
     hero.animTimer++;
     const interval = Math.max(1, Math.round(60 / HERO_ANIM_FPS));
     if (hero.animTimer >= interval) {
@@ -306,6 +585,32 @@ export class GameEngine {
         hero.sprite.scale.set(scale, scale);
       }
     }
+  }
+
+  private checkQuestFail(): void {
+    const allDead = this.heroes.every((h) => h.dead);
+    if (allDead) {
+      this.removeCreature();
+      this.onQuestFail();
+    }
+  }
+
+  private moveHeroToward(
+    hero: InternalHero,
+    dx: number,
+    dy: number,
+    dist: number,
+    speed: number,
+  ): void {
+    let newDirection: AnimationKey;
+    if (Math.abs(dx) >= Math.abs(dy)) {
+      newDirection = dx > 0 ? 'walk_e' : 'walk_w';
+    } else {
+      newDirection = dy > 0 ? 'walk_s' : 'walk_n';
+    }
+    this.setHeroDirection(hero, newDirection);
+    hero.sprite.x += (dx / dist) * speed;
+    hero.sprite.y += (dy / dist) * speed;
   }
 
   private setHeroDirection(hero: InternalHero, direction: AnimationKey): void {
@@ -325,36 +630,36 @@ export class GameEngine {
     }
   }
 
-  private findNearestUnclaimedDot(hero: InternalHero): InternalDot | null {
-    let nearest: InternalDot | null = null;
+  private findNearestUnclaimedOrb(hero: InternalHero): InternalOrb | null {
+    let nearest: InternalOrb | null = null;
     let nearestDist = Infinity;
 
-    for (const dot of this.dots) {
-      if (dot.claimed) continue;
-      const dx = dot.data.x - hero.sprite.x;
-      const dy = dot.data.y - hero.sprite.y;
+    for (const orb of this.orbs) {
+      if (orb.claimed) continue;
+      const dx = orb.data.x - hero.sprite.x;
+      const dy = orb.data.y - hero.sprite.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
       if (dist < nearestDist) {
         nearestDist = dist;
-        nearest = dot;
+        nearest = orb;
       }
     }
 
     return nearest;
   }
 
-  private collectDot(dot: InternalDot, hero: InternalHero): void {
-    if (!this.dotContainer) return;
+  private collectOrb(orb: InternalOrb, hero: InternalHero): void {
+    if (!this.orbContainer) return;
 
-    this.dotContainer.removeChild(dot.sprite);
-    dot.sprite.destroy();
+    this.orbContainer.removeChild(orb.sprite);
+    orb.sprite.destroy();
 
-    const idx = this.dots.indexOf(dot);
-    if (idx !== -1) this.dots.splice(idx, 1);
+    const idx = this.orbs.indexOf(orb);
+    if (idx !== -1) this.orbs.splice(idx, 1);
 
-    hero.targetDotId = null;
+    hero.targetOrbId = null;
 
-    this.onCollect(dot.data.value);
+    this.onCollect(orb.data.value);
   }
 
   destroy(): void {
@@ -363,7 +668,8 @@ export class GameEngine {
       this.app.destroy(true, { children: true });
       this.app = null;
     }
-    this.dots = [];
+    this.orbs = [];
     this.heroes = [];
+    this.creature = null;
   }
 }

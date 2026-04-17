@@ -1,52 +1,89 @@
 import { useState } from "react";
 import type { UpgradeCosts } from "../../game/types";
+import { ORB_TYPES } from "../../game/orbSpriteDefinitions";
+import { CREATURE_TYPES, QUEST_BUY_COSTS } from "../../game/creatureSpriteDefinitions";
 import styles from "./UpgradePanel.module.css";
+
+/** Convert a kebab-case sprite name to Title Case. e.g. 'dark-blue' → 'Dark Blue' */
+function formatSpriteName(name: string): string {
+  return name
+    .split('-')
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
+}
 
 interface UpgradePanelProps {
   money: number;
   heroCount: number;
   heroSpeed: number;
-  specialDotChance: number;
   heroCountLevel: number;
   speedLevel: number;
-  specialLevel: number;
   activeHeroCountLevel: number;
   activeSpeedLevel: number;
-  activeSpecialLevel: number;
+  unlockOrbsLevel: number;
+  betterOrbsParam: number;
+  heroMaxHp: number;
+  questUnlockLevel: number;
+  activeQuestCreatureIdx: number | null;
   upgradeCosts: UpgradeCosts;
   onUpgradeHeroSpeed: () => void;
   onUpgradeHeroCount: () => void;
-  onUpgradeSpecialDotChance: () => void;
+  onUpgradeUnlockOrbs: () => void;
+  onUpgradeBetterOrbs: () => void;
+  onUpgradeHeroHealth: () => void;
+  onUpgradeQuestUnlock: () => void;
+  onBuyQuest: (level: number) => void;
   onSetActiveHeroCountLevel: (level: number) => void;
   onSetActiveSpeedLevel: (level: number) => void;
-  onSetActiveSpecialLevel: (level: number) => void;
 }
 
 export default function UpgradePanel({
   money,
   heroCount,
   heroSpeed,
-  specialDotChance,
   heroCountLevel,
   speedLevel,
-  specialLevel,
   activeHeroCountLevel,
   activeSpeedLevel,
-  activeSpecialLevel,
+  unlockOrbsLevel,
+  betterOrbsParam,
+  heroMaxHp,
+  questUnlockLevel,
+  activeQuestCreatureIdx,
   upgradeCosts,
   onUpgradeHeroSpeed,
   onUpgradeHeroCount,
-  onUpgradeSpecialDotChance,
+  onUpgradeUnlockOrbs,
+  onUpgradeBetterOrbs,
+  onUpgradeHeroHealth,
+  onUpgradeQuestUnlock,
+  onBuyQuest,
   onSetActiveHeroCountLevel,
   onSetActiveSpeedLevel,
-  onSetActiveSpecialLevel,
 }: UpgradePanelProps) {
   const [collapsed, setCollapsed] = useState(false);
 
-  // Build label arrays for each upgrade type
-  const heroCountLabels = Array.from({ length: heroCountLevel + 1 }, (_, i) => `${i + 1}`);
-  const speedLabels = Array.from({ length: speedLevel + 1 }, (_, i) => `${(1 + i * 0.5).toFixed(1)}x`);
-  const specialLabels = Array.from({ length: specialLevel + 1 }, (_, i) => `${((i + 1) * 5)}%`);
+  // Build label arrays for hero count and speed (support active-level selectors)
+  const heroCountLabels = Array.from(
+    { length: heroCountLevel + 1 },
+    (_, i) => `${i + 1}`,
+  );
+  const speedLabels = Array.from(
+    { length: speedLevel + 1 },
+    (_, i) => `${(1 + i * 0.5).toFixed(1)}x`,
+  );
+
+  // Next orb to unlock
+  const nextOrbName =
+    unlockOrbsLevel < ORB_TYPES.length
+      ? formatSpriteName(ORB_TYPES[unlockOrbsLevel].name)
+      : null;
+
+  // Active quest creature name
+  const activeCreatureName =
+    activeQuestCreatureIdx !== null
+      ? formatSpriteName(CREATURE_TYPES[activeQuestCreatureIdx]?.name ?? '')
+      : null;
 
   return (
     <div className={`${styles.panel} ${collapsed ? styles.collapsed : ""}`}>
@@ -67,10 +104,11 @@ export default function UpgradePanel({
         <div className={styles.moneyDisplay}>
           <i className="fa-solid fa-circle" style={{ color: "#FFD700" }} />
           <span className={styles.moneyAmount}>{Math.floor(money)}</span>
-          <span className={styles.moneyLabel}>dots</span>
+          <span className={styles.moneyLabel}>coins</span>
         </div>
 
         <div className={styles.upgrades}>
+          {/* ── Hero upgrades ── */}
           <UpgradeItem
             icon="fa-gauge-high"
             label="Hero Speed"
@@ -94,27 +132,113 @@ export default function UpgradePanel({
             onSetActiveLevel={onSetActiveHeroCountLevel}
           />
           <UpgradeItem
+            icon="fa-heart"
+            label="Hero Health"
+            description={`Max HP: ${heroMaxHp}`}
+            cost={upgradeCosts.heroHealth}
+            canAfford={money >= upgradeCosts.heroHealth}
+            onUpgrade={onUpgradeHeroHealth}
+          />
+
+          {/* ── Orb upgrades ── */}
+          <div className={styles.sectionDivider}>Orbs</div>
+          <UpgradeItem
+            icon="fa-circle-dot"
+            label="Unlock Orbs"
+            description={
+              nextOrbName
+                ? `Next: ${nextOrbName} (${ORB_TYPES[unlockOrbsLevel].value} coins)`
+                : `All ${ORB_TYPES.length} orb types unlocked`
+            }
+            cost={upgradeCosts.unlockOrbs}
+            canAfford={money >= upgradeCosts.unlockOrbs}
+            onUpgrade={onUpgradeUnlockOrbs}
+          />
+          <UpgradeItem
             icon="fa-star"
-            label="Special Dots"
-            description={`Chance: ${(specialDotChance * 100).toFixed(0)}%`}
-            cost={upgradeCosts.specialDotChance}
-            canAfford={money >= upgradeCosts.specialDotChance}
-            onUpgrade={onUpgradeSpecialDotChance}
-            levelLabels={specialLabels}
-            activeLevel={activeSpecialLevel}
-            onSetActiveLevel={onSetActiveSpecialLevel}
+            label="Better Orbs"
+            description={`Quality: ${betterOrbsParam.toFixed(1)}x`}
+            cost={upgradeCosts.betterOrbs}
+            canAfford={money >= upgradeCosts.betterOrbs}
+            onUpgrade={onUpgradeBetterOrbs}
+          />
+
+          {/* ── Quest upgrades ── */}
+          <div className={styles.sectionDivider}>Quests</div>
+          <UpgradeItem
+            icon="fa-dragon"
+            label="Unlock Quest"
+            description={
+              questUnlockLevel < CREATURE_TYPES.length
+                ? `Next: ${formatSpriteName(CREATURE_TYPES[questUnlockLevel]?.name ?? '?')}`
+                : `All ${CREATURE_TYPES.length} quest levels unlocked`
+            }
+            cost={upgradeCosts.questUnlock}
+            canAfford={money >= upgradeCosts.questUnlock}
+            onUpgrade={onUpgradeQuestUnlock}
           />
         </div>
 
+        {/* ── Buy Quest section ── */}
+        {questUnlockLevel > 0 && (
+          <div className={styles.questSection}>
+            <div className={styles.questHeader}>
+              <i className="fa-solid fa-swords" />
+              <span>Buy Quest</span>
+            </div>
+
+            {activeCreatureName ? (
+              <div className={styles.activeQuest}>
+                <i className="fa-solid fa-hourglass-half" />
+                <span>Quest active: {activeCreatureName}</span>
+              </div>
+            ) : (
+              <div className={styles.questList}>
+                {Array.from({ length: questUnlockLevel }, (_, i) => {
+                  const creature = CREATURE_TYPES[i];
+                  const cost = QUEST_BUY_COSTS[i];
+                  const canAfford = money >= cost;
+                  return (
+                    <button
+                      key={i}
+                      className={`${styles.questButton} ${canAfford ? styles.questCanAfford : styles.questCantAfford}`}
+                      onClick={() => onBuyQuest(i)}
+                      disabled={!canAfford}
+                      title={`HP: ${creature.hp} | Dmg: ${creature.damage} | Reward: ${creature.reward}`}
+                    >
+                      <span className={styles.questName}>{formatSpriteName(creature.name)}</span>
+                      <span className={styles.questCost}>
+                        <i
+                          className="fa-solid fa-circle"
+                          style={{ color: "#FFD700", fontSize: "0.7em" }}
+                        />{" "}
+                        {cost}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Orb legend ── */}
         <div className={styles.legend}>
-          <div className={styles.legendItem}>
-            <span className={styles.normalDot} />
-            <span>Normal Dot (1 pt)</span>
-          </div>
-          <div className={styles.legendItem}>
-            <span className={styles.specialDot} />
-            <span>Special Dot (10 pts)</span>
-          </div>
+          {Array.from({ length: unlockOrbsLevel + 1 }, (_, i) => {
+            const orb = ORB_TYPES[i];
+            const hex = `#${orb.color.toString(16).padStart(6, "0")}`;
+            return (
+              <div key={i} className={styles.legendItem}>
+                <span
+                  className={styles.orbDot}
+                  style={{ background: hex, boxShadow: `0 0 6px ${hex}` }}
+                />
+                <span>
+                  {formatSpriteName(orb.name)} ({orb.value} {orb.value === 1 ? "coin" : "coins"})
+                </span>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
@@ -128,9 +252,9 @@ interface UpgradeItemProps {
   cost: number;
   canAfford: boolean;
   onUpgrade: () => void;
-  levelLabels: string[];
-  activeLevel: number;
-  onSetActiveLevel: (level: number) => void;
+  levelLabels?: string[];
+  activeLevel?: number;
+  onSetActiveLevel?: (level: number) => void;
 }
 
 function UpgradeItem({
@@ -144,6 +268,7 @@ function UpgradeItem({
   activeLevel,
   onSetActiveLevel,
 }: UpgradeItemProps) {
+  const isMaxed = cost === Infinity;
   return (
     <div className={styles.upgradeItem}>
       <div className={styles.upgradeRow}>
@@ -155,15 +280,21 @@ function UpgradeItem({
           </div>
         </div>
         <button
-          className={`${styles.upgradeButton} ${canAfford ? styles.canAfford : styles.cantAfford}`}
+          className={`${styles.upgradeButton} ${canAfford && !isMaxed ? styles.canAfford : styles.cantAfford}`}
           onClick={onUpgrade}
-          disabled={!canAfford}
+          disabled={!canAfford || isMaxed}
         >
-          <i className="fa-solid fa-circle" style={{ color: "#FFD700", fontSize: "0.75em" }} />
-          {cost === Infinity ? "MAX" : cost}
+          {isMaxed ? (
+            "MAX"
+          ) : (
+            <>
+              <i className="fa-solid fa-circle" style={{ color: "#FFD700", fontSize: "0.75em" }} />
+              {cost}
+            </>
+          )}
         </button>
       </div>
-      {levelLabels.length > 1 && (
+      {levelLabels && levelLabels.length > 1 && onSetActiveLevel !== undefined && (
         <div className={styles.levelSelector}>
           {levelLabels.map((lbl, i) => (
             <button

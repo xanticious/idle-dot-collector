@@ -229,21 +229,108 @@
   color: #6666aa;
 }
 
-.normalDot {
+.orbDot {
   display: inline-block;
   width: 12px;
   height: 12px;
   border-radius: 50%;
-  background: #ffff00;
   flex-shrink: 0;
 }
 
-.specialDot {
-  display: inline-block;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  background: #ffaa00;
-  box-shadow: 0 0 8px rgba(255, 170, 0, 0.6);
-  flex-shrink: 0;
+.sectionDivider {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #4a4a7a;
+  padding: 0.25rem 0 0.1rem;
+  border-top: 1px solid #1e1e38;
+  margin-top: 0.25rem;
+}
+
+.questSection {
+  background: #0a0a1a;
+  border: 1px solid #2a2a4a;
+  border-radius: 8px;
+  padding: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.questHeader {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: #c0c0e0;
+}
+
+.questHeader i {
+  color: #e06060;
+}
+
+.activeQuest {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  color: #ffcc44;
+  padding: 0.4rem 0.5rem;
+  background: #1a1a0a;
+  border: 1px solid #4a4a1a;
+  border-radius: 6px;
+}
+
+.questList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.questButton {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.45rem 0.6rem;
+  border-radius: 6px;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    opacity 0.2s,
+    transform 0.1s;
+}
+
+.questButton.questCanAfford {
+  background: linear-gradient(135deg, #2a1a3a, #3a1e52);
+  color: #cc99ff;
+  border: 1px solid #5a3080;
+}
+
+.questButton.questCanAfford:hover {
+  transform: scale(1.02);
+  background: linear-gradient(135deg, #3a1e52, #4a2868);
+}
+
+.questButton.questCantAfford {
+  background: #1a1a2a;
+  color: #4a4a6a;
+  border: 1px solid #2a2a3a;
+  cursor: not-allowed;
+}
+
+.questName {
+  flex: 1;
+  text-align: left;
+}
+
+.questCost {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.75rem;
+  color: inherit;
 }

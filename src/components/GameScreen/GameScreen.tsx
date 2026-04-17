@@ -11,27 +11,37 @@ export default function GameScreen() {
       <GameCanvas
         heroCount={store.heroCount}
         heroSpeed={store.heroSpeed}
-        specialDotChance={store.specialDotChance}
-        onDotsCollected={store.addMoney}
+        unlockedOrbLevel={store.unlockedOrbLevel}
+        betterOrbsParam={store.betterOrbsParam}
+        heroMaxHp={store.heroMaxHp}
+        activeQuestCreatureIdx={store.activeQuestCreatureIdx}
+        onCoinsCollected={store.addMoney}
+        onQuestComplete={store.completeQuest}
+        onQuestFail={store.failQuest}
       />
       <UpgradePanel
         money={store.money}
         heroCount={store.heroCount}
         heroSpeed={store.heroSpeed}
-        specialDotChance={store.specialDotChance}
         heroCountLevel={store.heroCountLevel}
         speedLevel={store.speedLevel}
-        specialLevel={store.specialLevel}
         activeHeroCountLevel={store.activeHeroCountLevel}
         activeSpeedLevel={store.activeSpeedLevel}
-        activeSpecialLevel={store.activeSpecialLevel}
+        unlockOrbsLevel={store.unlockOrbsLevel}
+        betterOrbsParam={store.betterOrbsParam}
+        heroMaxHp={store.heroMaxHp}
+        questUnlockLevel={store.questUnlockLevel}
+        activeQuestCreatureIdx={store.activeQuestCreatureIdx}
         upgradeCosts={store.upgradeCosts}
         onUpgradeHeroSpeed={store.upgradeHeroSpeed}
         onUpgradeHeroCount={store.upgradeHeroCount}
-        onUpgradeSpecialDotChance={store.upgradeSpecialDotChance}
+        onUpgradeUnlockOrbs={store.upgradeUnlockOrbs}
+        onUpgradeBetterOrbs={store.upgradeBetterOrbs}
+        onUpgradeHeroHealth={store.upgradeHeroHealth}
+        onUpgradeQuestUnlock={store.upgradeQuestUnlock}
+        onBuyQuest={store.buyQuest}
         onSetActiveHeroCountLevel={store.setActiveHeroCountLevel}
         onSetActiveSpeedLevel={store.setActiveSpeedLevel}
-        onSetActiveSpecialLevel={store.setActiveSpecialLevel}
       />
     </div>
   );

@@ -8,7 +8,10 @@ describe("useGameStore", () => {
     expect(result.current.money).toBe(0);
     expect(result.current.heroCount).toBe(1);
     expect(result.current.heroSpeed).toBe(1);
-    expect(result.current.specialDotChance).toBe(0.05);
+    expect(result.current.unlockedOrbLevel).toBe(0);
+    expect(result.current.betterOrbsParam).toBe(1);
+    expect(result.current.heroMaxHp).toBe(10);
+    expect(result.current.activeQuestCreatureIdx).toBeNull();
   });
 
   it("adds money correctly", () => {
@@ -49,20 +52,77 @@ describe("useGameStore", () => {
     expect(result.current.heroCount).toBe(2);
   });
 
-  it("upgrades special dot chance when affordable (unlocks new level, deducts cost)", () => {
+  it("upgrades unlock orbs when affordable (unlocks new orb tier, deducts cost)", () => {
     const { result } = renderHook(() => useGameStore());
     act(() => result.current.addMoney(1000));
-    act(() => result.current.upgradeSpecialDotChance());
-    expect(result.current.specialLevel).toBe(1);
+    act(() => result.current.upgradeUnlockOrbs());
+    expect(result.current.unlockOrbsLevel).toBe(1);
     expect(result.current.money).toBeLessThan(1000);
   });
 
-  it("selecting higher special level after unlock increases active chance", () => {
+  it("upgrades better orbs when affordable (increases param, deducts cost)", () => {
     const { result } = renderHook(() => useGameStore());
     act(() => result.current.addMoney(1000));
-    act(() => result.current.upgradeSpecialDotChance());
-    act(() => result.current.setActiveSpecialLevel(1));
-    expect(result.current.specialDotChance).toBeGreaterThan(0.05);
+    act(() => result.current.upgradeBetterOrbs());
+    expect(result.current.betterOrbsLevel).toBe(1);
+    expect(result.current.betterOrbsParam).toBeGreaterThan(1);
+    expect(result.current.money).toBeLessThan(1000);
+  });
+
+  it("upgrades hero health when affordable (increases maxHp, deducts cost)", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(1000));
+    act(() => result.current.upgradeHeroHealth());
+    expect(result.current.heroHealthLevel).toBe(1);
+    expect(result.current.heroMaxHp).toBeGreaterThan(10);
+    expect(result.current.money).toBeLessThan(1000);
+  });
+
+  it("unlocks quest level when affordable", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(10000));
+    act(() => result.current.upgradeQuestUnlock());
+    expect(result.current.questUnlockLevel).toBe(1);
+    expect(result.current.money).toBeLessThan(10000);
+  });
+
+  it("can buy a quest after unlocking it", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(10000));
+    act(() => result.current.upgradeQuestUnlock());
+    act(() => result.current.buyQuest(0));
+    expect(result.current.activeQuestCreatureIdx).toBe(0);
+    expect(result.current.money).toBeLessThan(10000);
+  });
+
+  it("completing a quest clears the active quest and adds reward", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(10000));
+    act(() => result.current.upgradeQuestUnlock());
+    act(() => result.current.buyQuest(0));
+    const moneyBefore = result.current.money;
+    act(() => result.current.completeQuest(500));
+    expect(result.current.activeQuestCreatureIdx).toBeNull();
+    expect(result.current.money).toBe(moneyBefore + 500);
+  });
+
+  it("failing a quest clears the active quest without reward", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(10000));
+    act(() => result.current.upgradeQuestUnlock());
+    act(() => result.current.buyQuest(0));
+    act(() => result.current.failQuest());
+    expect(result.current.activeQuestCreatureIdx).toBeNull();
+  });
+
+  it("cannot buy a second quest while one is active", () => {
+    const { result } = renderHook(() => useGameStore());
+    act(() => result.current.addMoney(10000));
+    act(() => result.current.upgradeQuestUnlock());
+    act(() => result.current.buyQuest(0));
+    const moneyAfterFirst = result.current.money;
+    act(() => result.current.buyQuest(0));
+    expect(result.current.money).toBe(moneyAfterFirst); // no extra deduction
   });
 
   it("does not upgrade when cannot afford", () => {

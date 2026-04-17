@@ -6,24 +6,46 @@ import styles from "./GameCanvas.module.css";
 interface GameCanvasProps {
   heroCount: number;
   heroSpeed: number;
-  specialDotChance: number;
-  onDotsCollected: (amount: number) => void;
+  unlockedOrbLevel: number;
+  betterOrbsParam: number;
+  heroMaxHp: number;
+  activeQuestCreatureIdx: number | null;
+  onCoinsCollected: (amount: number) => void;
+  onQuestComplete: (reward: number) => void;
+  onQuestFail: () => void;
 }
 
 export default function GameCanvas({
   heroCount,
   heroSpeed,
-  specialDotChance,
-  onDotsCollected,
+  unlockedOrbLevel,
+  betterOrbsParam,
+  heroMaxHp,
+  activeQuestCreatureIdx,
+  onCoinsCollected,
+  onQuestComplete,
+  onQuestFail,
 }: GameCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const engineRef = useRef<GameEngine | null>(null);
-  const configRef = useRef<GameConfig>({ heroCount, heroSpeed, specialDotChance });
+  const configRef = useRef<GameConfig>({
+    heroCount,
+    heroSpeed,
+    unlockedOrbLevel,
+    betterOrbsParam,
+    heroMaxHp,
+    activeQuestCreatureIdx,
+  });
 
   useEffect(() => {
     if (!containerRef.current) return;
 
-    const engine = new GameEngine(containerRef.current, onDotsCollected);
+    const engine = new GameEngine(
+      containerRef.current,
+      onCoinsCollected,
+      onQuestComplete,
+      onQuestFail,
+    );
     engineRef.current = engine;
 
     void engine.init(configRef.current);
@@ -36,10 +58,17 @@ export default function GameCanvas({
   }, []);
 
   useEffect(() => {
-    configRef.current = { heroCount, heroSpeed, specialDotChance };
+    configRef.current = {
+      heroCount,
+      heroSpeed,
+      unlockedOrbLevel,
+      betterOrbsParam,
+      heroMaxHp,
+      activeQuestCreatureIdx,
+    };
     if (!engineRef.current) return;
-    engineRef.current.updateConfig({ heroCount, heroSpeed, specialDotChance });
-  }, [heroCount, heroSpeed, specialDotChance]);
+    engineRef.current.updateConfig(configRef.current);
+  }, [heroCount, heroSpeed, unlockedOrbLevel, betterOrbsParam, heroMaxHp, activeQuestCreatureIdx]);
 
   return <div ref={containerRef} className={styles.canvas} />;
 }

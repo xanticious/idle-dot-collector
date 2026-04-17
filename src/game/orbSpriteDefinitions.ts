@@ -22,6 +22,8 @@ export interface OrbType {
   name: string;
   /** Coin value awarded when collected */
   value: number;
+  /** Hex color used in the upgrade-panel legend */
+  color: number;
   frames: SpriteFrame[];
 }
 
@@ -29,6 +31,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'white',
     value: 1,
+    color: 0xffffff,
     frames: [
       { x: 82, y: 23, width: 151, height: 160 },
       { x: 267, y: 23, width: 155, height: 160 },
@@ -39,6 +42,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'blue',
     value: 2,
+    color: 0x4488ff,
     frames: [
       { x: 839, y: 23, width: 147, height: 160 },
       { x: 1031, y: 23, width: 144, height: 160 },
@@ -48,6 +52,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'dark-blue',
     value: 4,
+    color: 0x2255cc,
     frames: [
       { x: 647, y: 765, width: 164, height: 175 },
       { x: 838, y: 765, width: 165, height: 175 },
@@ -58,6 +63,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'green',
     value: 8,
+    color: 0x44ff88,
     frames: [
       { x: 106, y: 215, width: 121, height: 151 },
       { x: 292, y: 215, width: 125, height: 151 },
@@ -67,6 +73,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'yellow-green',
     value: 16,
+    color: 0xaaff44,
     frames: [
       { x: 673, y: 215, width: 126, height: 151 },
       { x: 864, y: 215, width: 126, height: 151 },
@@ -77,6 +84,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'orange',
     value: 32,
+    color: 0xff8800,
     frames: [
       { x: 647, y: 397, width: 168, height: 153 },
       { x: 839, y: 397, width: 167, height: 153 },
@@ -87,6 +95,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'dark-orange',
     value: 64,
+    color: 0xcc4400,
     frames: [
       { x: 74, y: 765, width: 175, height: 175 },
       { x: 264, y: 765, width: 169, height: 175 },
@@ -96,6 +105,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'purple',
     value: 128,
+    color: 0xaa44ff,
     frames: [
       { x: 77, y: 579, width: 173, height: 157 },
       { x: 254, y: 579, width: 185, height: 157 },
@@ -109,6 +119,7 @@ export const ORB_TYPES: OrbType[] = [
   {
     name: 'red',
     value: 256,
+    color: 0xff2222,
     frames: [
       { x: 82, y: 397, width: 165, height: 153 },
       { x: 268, y: 397, width: 166, height: 153 },
